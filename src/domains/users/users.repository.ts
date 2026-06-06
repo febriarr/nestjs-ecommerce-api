@@ -1,8 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { eq, and, isNull } from 'drizzle-orm';
 
-import { DatabaseService } from 'src/database/database.service';
-import { schema, SelectUser, InsertUser } from 'src/database/schema';
+import { DatabaseService } from '../../infrastructure/database/database.service';
+import {
+  schema,
+  SelectUser,
+  InsertUser,
+} from '../../infrastructure/database/schema';
 
 @Injectable()
 export class UsersRepository {
@@ -11,8 +15,8 @@ export class UsersRepository {
   async findById(id: string): Promise<SelectUser | null> {
     const [user] = await this.databaseService.db
       .select()
-      .from(schema.user)
-      .where(and(eq(schema.user.id, id), isNull(schema.user.deletedAt)))
+      .from(schema.users)
+      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
       .limit(1);
 
     return user ?? null;
@@ -21,8 +25,8 @@ export class UsersRepository {
   async findByEmail(email: string): Promise<SelectUser | null> {
     const [user] = await this.databaseService.db
       .select()
-      .from(schema.user)
-      .where(and(eq(schema.user.email, email), isNull(schema.user.deletedAt)))
+      .from(schema.users)
+      .where(and(eq(schema.users.email, email), isNull(schema.users.deletedAt)))
       .limit(1);
 
     return user ?? null;
@@ -30,7 +34,7 @@ export class UsersRepository {
 
   async insert(data: InsertUser): Promise<SelectUser> {
     const [created] = await this.databaseService.db
-      .insert(schema.user)
+      .insert(schema.users)
       .values(data)
       .returning();
 
@@ -43,9 +47,9 @@ export class UsersRepository {
 
   async update(id: string, data: Partial<InsertUser>): Promise<SelectUser> {
     const [updated] = await this.databaseService.db
-      .update(schema.user)
+      .update(schema.users)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(schema.user.id, id), isNull(schema.user.deletedAt)))
+      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
       .returning();
 
     if (!updated) {
@@ -58,9 +62,9 @@ export class UsersRepository {
   // soft delete
   async softDelete(id: string): Promise<SelectUser> {
     const [deleted] = await this.databaseService.db
-      .update(schema.user)
+      .update(schema.users)
       .set({ deletedAt: new Date() })
-      .where(and(eq(schema.user.id, id), isNull(schema.user.deletedAt)))
+      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
       .returning();
 
     if (!deleted) {

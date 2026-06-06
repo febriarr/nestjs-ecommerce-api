@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type CreateUserDto } from './users.dto';
 import * as bcrypt from 'bcrypt';
-import { SelectUser } from 'src/database/schema/user.entity';
+import { SelectUser } from '../../infrastructure/database/schema/users.entity';
 import { UsersRepository } from './users.repository';
 
 export type SafeUser = Omit<SelectUser, 'password'>;

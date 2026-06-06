@@ -11,7 +11,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { type Status, type Role } from 'src/database/schema/user.entity';
+import {
+  type Status,
+  type Role,
+} from '../../infrastructure/database/schema/users.entity';
 
 export class CreateUserDto {
   @IsEmail({}, { message: 'Email tidak valid' })
