@@ -106,18 +106,8 @@ export const userContacts = pgTable(
     // Flags
     isPrimary: boolean('is_primary').notNull().default(false),
     isActive: boolean('is_active').notNull().default(true),
-    /**
-     * Tidak perlu soft delete karena reference ke user
-     * jadi jika user di hard delete maka informasi kontak
-     * juga akan ikut hilang karena on delete cascade
-     */
-    createdAt: timestamp('created_at', { mode: 'date', withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
+
+    ...timestamps,
   },
 
   (t) => [
