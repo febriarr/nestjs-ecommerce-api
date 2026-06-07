@@ -53,6 +53,8 @@ export const users = pgTable(
     phone: varchar('phone', { length: 20 }),
     avatar: varchar('avatar', { length: 255 }),
     role: roleEnum('role').notNull().default('customer'),
+    emailIsVerified: boolean('email_is_verified').default(false),
+    phoneIsVerified: boolean('phone_is_verified').default(false),
     status: statusEnum('status').notNull().default('active'),
     oauthMetadata: jsonb('oauth_metadata').$type<OauthMetadata>(),
     notificationPref: jsonb('notification_pref').$type<NotificationPref>(),
@@ -104,9 +106,18 @@ export const userContacts = pgTable(
     // Flags
     isPrimary: boolean('is_primary').notNull().default(false),
     isActive: boolean('is_active').notNull().default(true),
-
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    /**
+     * Tidak perlu soft delete karena reference ke user
+     * jadi jika user di hard delete maka informasi kontak
+     * juga akan ikut hilang karena on delete cascade
+     */
+    createdAt: timestamp('created_at', { mode: 'date', withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
   },
 
   (t) => [
