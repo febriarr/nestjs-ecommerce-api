@@ -2,14 +2,14 @@ import { Logger, OnApplicationShutdown, Provider } from '@nestjs/common';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { ConfigService } from '@nestjs/config';
-import { schema, Schema } from './schema';
+import * as schema from './schema';
 
 export const DB_CONNECTION = 'DB_CONNECTION' as const;
 
-export type Database = NodePgDatabase<Schema>;
+export type Database = NodePgDatabase<typeof schema>;
 
-class DrizzleClient implements OnApplicationShutdown {
-  readonly db: NodePgDatabase<Schema>;
+export class DrizzleClient implements OnApplicationShutdown {
+  readonly db: NodePgDatabase<typeof schema>;
   private readonly pool: Pool;
   private readonly logger = new Logger(DrizzleClient.name);
 
@@ -37,7 +37,7 @@ class DrizzleClient implements OnApplicationShutdown {
 export const DatabaseProvider: Provider = {
   provide: DB_CONNECTION,
   inject: [ConfigService],
-  useFactory: async (configService: ConfigService): Promise<Database> => {
+  useFactory: async (configService: ConfigService): Promise<DrizzleClient> => {
     const client = new DrizzleClient(
       configService.getOrThrow<string>('DATABASE_URL'),
       configService.get<string>('NODE_ENV') !== 'production'
@@ -45,6 +45,6 @@ export const DatabaseProvider: Provider = {
 
     await client.connect();
 
-    return client.db;
+    return client;
   },
 };

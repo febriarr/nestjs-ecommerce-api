@@ -3,40 +3,40 @@ import { eq, and, isNull } from 'drizzle-orm';
 
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
-  schema,
+  users,
   SelectUser,
   InsertUser,
 } from '../../infrastructure/database/schema';
+import { BaseRepository } from '../../common/abstracts/base.repository';
 
 @Injectable()
-export class UsersRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+export class UsersRepository extends BaseRepository {
+  constructor(db: DatabaseService) {
+    super(db);
+  }
 
   async findById(id: string): Promise<SelectUser | null> {
-    const [user] = await this.databaseService.db
+    const [user] = await this.db
       .select()
-      .from(schema.users)
-      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
+      .from(users)
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .limit(1);
 
     return user ?? null;
   }
 
   async findByEmail(email: string): Promise<SelectUser | null> {
-    const [user] = await this.databaseService.db
+    const [user] = await this.db
       .select()
-      .from(schema.users)
-      .where(and(eq(schema.users.email, email), isNull(schema.users.deletedAt)))
+      .from(users)
+      .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
 
     return user ?? null;
   }
 
   async insert(data: InsertUser): Promise<SelectUser> {
-    const [created] = await this.databaseService.db
-      .insert(schema.users)
-      .values(data)
-      .returning();
+    const [created] = await this.db.insert(users).values(data).returning();
 
     if (!created) {
       throw new Error('Insert failed');
@@ -46,10 +46,10 @@ export class UsersRepository {
   }
 
   async update(id: string, data: Partial<InsertUser>): Promise<SelectUser> {
-    const [updated] = await this.databaseService.db
-      .update(schema.users)
+    const [updated] = await this.db
+      .update(users)
       .set({ ...data, updatedAt: new Date() })
-      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
 
     if (!updated) {
@@ -61,10 +61,10 @@ export class UsersRepository {
 
   // soft delete
   async softDelete(id: string): Promise<SelectUser> {
-    const [deleted] = await this.databaseService.db
-      .update(schema.users)
+    const [deleted] = await this.db
+      .update(users)
       .set({ deletedAt: new Date() })
-      .where(and(eq(schema.users.id, id), isNull(schema.users.deletedAt)))
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
 
     if (!deleted) {

@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { DB_CONNECTION } from './database.provider';
-import { Schema } from './schema';
+import { Database, DB_CONNECTION, DrizzleClient } from './database.provider';
 
 @Injectable()
 export class DatabaseService {
-  constructor(@Inject(DB_CONNECTION) readonly db: NodePgDatabase<Schema>) {}
+  readonly db: Database;
+  constructor(@Inject(DB_CONNECTION) private readonly client: DrizzleClient) {
+    this.db = client.db;
+  }
 }
