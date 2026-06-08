@@ -12,9 +12,8 @@ export class CreateBrandDTO {
   @Transform(({ value }: { value: string }) => value.trim().toLowerCase())
   slug: string;
 
-  @IsOptional()
-  @IsString()
-  logo?: string;
+  // Logo di-upload sebagai file (multipart field `logo`), bukan string body.
+  // Lihat BrandsController + ImageUploadService.
 
   @IsOptional()
   @Transform(({ value }: { value: string | boolean }) => {

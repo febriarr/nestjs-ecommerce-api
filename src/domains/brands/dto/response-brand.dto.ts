@@ -10,8 +10,13 @@ export class BrandResponseDto {
   @Expose()
   slug: string;
 
+  /** Key objek logo di storage (referensi kanonik). */
   @Expose()
   logo: string | null;
+
+  /** URL publik logo (null bila brand tidak punya logo). */
+  @Expose()
+  logoUrl: string | null;
 
   @Expose()
   isActive: boolean;
