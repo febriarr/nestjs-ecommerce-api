@@ -70,6 +70,28 @@ export class ImageUploadService {
     };
   }
 
+  /**
+   * Hapus objek gambar dari storage berdasarkan key.
+   *
+   * @param key Key objek yang akan dihapus.
+   */
+  async deleteImage(key: string): Promise<void> {
+    await this.storage.deleteObject(key);
+  }
+
+  /**
+   * Bentuk URL publik dari sebuah key.
+   *
+   * @param key Key objek (atau null bila tidak ada).
+   * @returns URL publik, atau null bila key null.
+   */
+  resolveUrl(key: string | null): string | null {
+    if (key === null) {
+      return null;
+    }
+    return `${this.publicBaseUrl}/${key}`;
+  }
+
   private buildKey(prefix: string): string {
     const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
     return `${normalizedPrefix}/${uuidv7()}.${WEBP_FORMAT}`;
