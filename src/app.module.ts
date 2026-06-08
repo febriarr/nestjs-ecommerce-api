@@ -8,6 +8,10 @@ import { AuthModule } from './domains/auth/auth.module';
 import { OtpModule } from './domains/otp/otp.module';
 import { SessionsModule } from './domains/sessions/sessions.module';
 import { BrandsModule } from './domains/brands/brands.module';
+import { StorageModule } from './infrastructure/storage/storage.module';
+import { ImageProcessingModule } from './infrastructure/image-processing/image-processing.module';
+import { PdfModule } from './infrastructure/pdf/pdf.module';
+import { InvoicesModule } from './domains/invoices/invoices.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { BrandsModule } from './domains/brands/brands.module';
     OtpModule,
     SessionsModule,
     BrandsModule,
+    StorageModule,
+    ImageProcessingModule,
+    PdfModule,
+    InvoicesModule,
   ],
 })
 export class AppModule implements NestModule {

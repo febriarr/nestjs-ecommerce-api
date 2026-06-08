@@ -19,6 +19,9 @@ async function bootstrap() {
     new TransformInterceptor()
   );
   app.useGlobalFilters(new AppExceptionFilter());
+  // Aktifkan shutdown hooks agar onApplicationShutdown terpanggil
+  // (DB pool, S3 client, Puppeteer browser ditutup dengan rapi).
+  app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000);
 }
 

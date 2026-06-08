@@ -10,3 +10,5 @@ export * from './categories.entity';
 export * from './attributes.entity';
 //brands
 export * from './brands.entity';
+//invoices
+export * from './invoices.entity';

@@ -43,4 +43,7 @@ export type ErrorCategory =
   | 'PAYMENT'
   | 'USER'
   | 'PERMISSION'
-  | 'RATE_LIMIT';
+  | 'RATE_LIMIT'
+  | 'STORAGE'
+  | 'MEDIA'
+  | 'INVOICE';
