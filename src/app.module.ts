@@ -11,6 +11,7 @@ import { BrandsModule } from './domains/brands/brands.module';
 import { StorageModule } from './infrastructure/storage/storage.module';
 import { ImageProcessingModule } from './infrastructure/image-processing/image-processing.module';
 import { PdfModule } from './infrastructure/pdf/pdf.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
 import { InvoicesModule } from './domains/invoices/invoices.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { InvoicesModule } from './domains/invoices/invoices.module';
     StorageModule,
     ImageProcessingModule,
     PdfModule,
+    QueueModule,
     InvoicesModule,
   ],
 })

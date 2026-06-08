@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Readable } from 'node:stream';
 import { uuidv7 } from 'uuidv7';
 import { InvoicesRepository } from './invoices.repository';
+import { InvoiceQueueProducer } from './invoices.queue';
 import { CreateInvoiceDTO } from './dto/create-invoice.dto';
 import { InvoiceResponseDto } from './dto/response-invoice.dto';
 import { renderInvoiceHtml } from './templates/invoice.template';
@@ -16,6 +17,8 @@ import { PDF_GENERATOR } from '../../infrastructure/pdf/pdf.constants';
 import type { PdfGenerator } from '../../infrastructure/pdf/pdf-generator.interface';
 import { STORAGE_PROVIDER } from '../../infrastructure/storage/storage.constants';
 import type { StorageProvider } from '../../infrastructure/storage/storage-provider.interface';
+import { MailService } from '../../infrastructure/mail/mail.service';
+import { streamToBuffer } from '../../common/utils/stream.util';
 import { AppException } from '../../common/exceptions/app-exceptions';
 import {
   InvoiceNotFoundException,
@@ -23,6 +26,7 @@ import {
 } from '../../common/exceptions/domains/invoice.exceptions';
 
 const PDF_CONTENT_TYPE = 'application/pdf';
+const FAILURE_REASON_MAX = 512;
 
 export interface InvoicePdfStream {
   stream: Readable;
@@ -38,6 +42,8 @@ export class InvoicesService {
     private readonly invoicesRepository: InvoicesRepository,
     private readonly companyConfig: CompanyConfigService,
     private readonly config: ConfigService,
+    private readonly queueProducer: InvoiceQueueProducer,
+    private readonly mailService: MailService,
     @Inject(PDF_GENERATOR) private readonly pdfGenerator: PdfGenerator,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider
   ) {
@@ -67,6 +73,7 @@ export class InvoicesService {
       ...(dto.issueDate ? { issueDate: new Date(dto.issueDate) } : {}),
     };
 
+    // Status awal UNPAID; PDF & email belum diproses (lihat markAsPaid).
     const invoice = await this.invoicesRepository.insert(payload);
     return this.toInvoiceResponse(invoice);
   }
@@ -77,16 +84,47 @@ export class InvoicesService {
   }
 
   /**
-   * Flow generate invoice PDF:
-   *   1. Ambil data invoice dari repository.
-   *   2. Render HTML template.
-   *   3. Generate PDF via PdfGenerator.
-   *   4. Upload PDF ke StorageProvider.
-   *   5. Simpan storage key ke database.
-   *   6. Kembalikan metadata invoice.
+   * Tandai invoice sebagai PAID lalu picu pipeline generate PDF + kirim email.
+   *
+   * Ini adalah integration seam untuk payment webhook (belum ada). Nanti webhook
+   * cukup memanggil method ini setelah verifikasi pembayaran & set order paid.
+   * Idempotent: bila sudah PAID, tidak memicu ulang.
+   */
+  async markAsPaid(id: string): Promise<InvoiceResponseDto> {
+    const invoice = await this.getInvoiceOrThrow(id);
+
+    if (invoice.status === 'PAID') {
+      this.logger.log(`Invoice ${invoice.invoiceNumber} sudah PAID — dilewati`);
+      return this.toInvoiceResponse(invoice);
+    }
+
+    const paid = await this.invoicesRepository.update(id, {
+      status: 'PAID',
+      paidAt: new Date(),
+    });
+
+    await this.queueProducer.enqueueGeneratePdf(id);
+
+    return this.toInvoiceResponse(paid);
+  }
+
+  /**
+   * Enqueue ulang pipeline pengiriman (generate bila perlu → email).
+   * Dipakai untuk kirim ulang manual.
+   */
+  async requeueDelivery(id: string): Promise<InvoiceResponseDto> {
+    const invoice = await this.getInvoiceOrThrow(id);
+    await this.queueProducer.enqueueGeneratePdf(id);
+    return this.toInvoiceResponse(invoice);
+  }
+
+  /**
+   * Generate PDF invoice (dipanggil dari worker / fallback download):
+   * render HTML → PDF → upload storage → simpan pdfKey + status READY.
    */
   async generateInvoicePdf(id: string): Promise<InvoiceResponseDto> {
     const invoice = await this.getInvoiceOrThrow(id);
+    await this.invoicesRepository.update(id, { pdfStatus: 'PROCESSING' });
 
     try {
       const html = renderInvoiceHtml({
@@ -104,9 +142,17 @@ export class InvoicesService {
       const key = this.buildPdfKey(invoice.invoiceNumber);
       await this.storage.upload(pdf, key, PDF_CONTENT_TYPE);
 
-      const updated = await this.invoicesRepository.updatePdfKey(id, key);
+      const updated = await this.invoicesRepository.update(id, {
+        pdfKey: key,
+        pdfStatus: 'READY',
+        failureReason: null,
+      });
       return this.toInvoiceResponse(updated);
     } catch (error) {
+      await this.invoicesRepository.update(id, {
+        pdfStatus: 'FAILED',
+        failureReason: this.toFailureReason(error),
+      });
       if (error instanceof AppException) {
         throw error;
       }
@@ -119,26 +165,63 @@ export class InvoicesService {
   }
 
   /**
+   * Kirim email invoice berlampir PDF (dipanggil dari worker).
+   * Memastikan PDF tersedia (generate bila perlu) lalu kirim via MailService.
+   */
+  async sendInvoiceEmail(id: string): Promise<void> {
+    const invoice = await this.ensurePdfReady(id);
+
+    try {
+      const stream = await this.storage.getObject(invoice.pdfKey as string);
+      const pdf = await streamToBuffer(stream);
+
+      await this.mailService.sendInvoice({
+        to: invoice.customerEmail,
+        customerName: invoice.customerName,
+        invoiceNumber: invoice.invoiceNumber,
+        pdf,
+      });
+
+      await this.invoicesRepository.update(id, {
+        emailStatus: 'SENT',
+        sentAt: new Date(),
+        failureReason: null,
+      });
+    } catch (error) {
+      await this.invoicesRepository.update(id, {
+        emailStatus: 'FAILED',
+        failureReason: this.toFailureReason(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Ambil PDF invoice sebagai stream untuk diunduh.
-   * Bila PDF belum pernah di-generate, generate terlebih dahulu.
+   * Bila PDF belum tersedia, generate terlebih dahulu (fallback sinkron).
    */
   async getInvoicePdfStream(id: string): Promise<InvoicePdfStream> {
-    let invoice = await this.getInvoiceOrThrow(id);
-
-    if (
-      invoice.pdfKey === null ||
-      !(await this.storage.exists(invoice.pdfKey))
-    ) {
-      await this.generateInvoicePdf(id);
-      invoice = await this.getInvoiceOrThrow(id);
-    }
-
-    if (invoice.pdfKey === null) {
-      throw InvoicePdfGenerationFailedException();
-    }
-
-    const stream = await this.storage.getObject(invoice.pdfKey);
+    const invoice = await this.ensurePdfReady(id);
+    const stream = await this.storage.getObject(invoice.pdfKey as string);
     return { stream, filename: `${invoice.invoiceNumber}.pdf` };
+  }
+
+  /** Pastikan invoice punya PDF yang valid di storage; generate bila belum. */
+  private async ensurePdfReady(id: string): Promise<SelectInvoices> {
+    const invoice = await this.getInvoiceOrThrow(id);
+    if (
+      invoice.pdfKey !== null &&
+      (await this.storage.exists(invoice.pdfKey))
+    ) {
+      return invoice;
+    }
+
+    await this.generateInvoicePdf(id);
+    const refreshed = await this.getInvoiceOrThrow(id);
+    if (refreshed.pdfKey === null) {
+      throw InvoicePdfGenerationFailedException({ details: { id } });
+    }
+    return refreshed;
   }
 
   private async getInvoiceOrThrow(id: string): Promise<SelectInvoices> {
@@ -159,11 +242,16 @@ export class InvoicesService {
       items: invoice.items,
       subtotal: invoice.subtotal,
       total: invoice.total,
+      status: invoice.status,
+      paidAt: invoice.paidAt,
       pdfKey: invoice.pdfKey,
       pdfUrl:
         invoice.pdfKey === null
           ? null
           : `${this.publicBaseUrl}/${invoice.pdfKey}`,
+      pdfStatus: invoice.pdfStatus,
+      emailStatus: invoice.emailStatus,
+      sentAt: invoice.sentAt,
       createdAt: invoice.createdAt,
       updatedAt: invoice.updatedAt,
     });
@@ -171,6 +259,11 @@ export class InvoicesService {
 
   private buildPdfKey(invoiceNumber: string): string {
     return `invoices/${invoiceNumber}.pdf`;
+  }
+
+  private toFailureReason(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.slice(0, FAILURE_REASON_MAX);
   }
 
   private generateInvoiceNumber(): string {

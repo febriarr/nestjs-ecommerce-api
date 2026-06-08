@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
+export interface SendInvoiceParams {
+  to: string;
+  customerName: string;
+  invoiceNumber: string;
+  pdf: Buffer;
+}
+
 @Injectable()
 export class MailService {
   private readonly resend: Resend;
@@ -11,6 +18,42 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     this.resend = new Resend(config.getOrThrow<string>('RESEND_API_KEY'));
     this.from = config.getOrThrow<string>('RESEND_FROM_EMAIL');
+  }
+
+  /**
+   * Kirim email invoice dengan lampiran PDF.
+   *
+   * Berbeda dengan {@link sendOtp}, method ini SENGAJA melempar error bila gagal
+   * agar job BullMQ dapat melakukan retry.
+   */
+  async sendInvoice(params: SendInvoiceParams): Promise<void> {
+    const { to, customerName, invoiceNumber, pdf } = params;
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: `Invoice ${invoiceNumber}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2>Halo, ${customerName}!</h2>
+          <p>
+            Terlampir invoice <strong>${invoiceNumber}</strong> atas pembayaran
+            Anda yang telah kami terima. Terima kasih.
+          </p>
+          <p style="color: #71717a; font-size: 14px;">
+            File PDF invoice terlampir pada email ini.
+          </p>
+        </div>
+      `,
+      attachments: [{ filename: `${invoiceNumber}.pdf`, content: pdf }],
+    });
+
+    if (error) {
+      this.logger.error(
+        `Gagal mengirim email invoice ${invoiceNumber} ke ${to}`,
+        error
+      );
+      throw new Error(`Resend gagal mengirim invoice: ${error.message}`);
+    }
   }
 
   async sendOtp(email: string, name: string, otp: string, purpose: string) {

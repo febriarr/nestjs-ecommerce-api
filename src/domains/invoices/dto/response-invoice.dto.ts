@@ -1,5 +1,10 @@
 import { Expose } from 'class-transformer';
-import { InvoiceItemSnapshot } from '../../../infrastructure/database/schema';
+import type {
+  InvoiceEmailStatus,
+  InvoiceItemSnapshot,
+  InvoicePaymentStatus,
+  InvoicePdfStatus,
+} from '../../../infrastructure/database/schema';
 
 export class InvoiceResponseDto {
   @Expose()
@@ -26,12 +31,30 @@ export class InvoiceResponseDto {
   @Expose()
   total: number;
 
+  /** Status pembayaran (UNPAID/PAID). */
+  @Expose()
+  status: InvoicePaymentStatus;
+
+  @Expose()
+  paidAt: Date | null;
+
   @Expose()
   pdfKey: string | null;
 
   /** URL publik PDF (null bila PDF belum di-generate). */
   @Expose()
   pdfUrl: string | null;
+
+  /** Status pipeline PDF (PENDING/PROCESSING/READY/FAILED). */
+  @Expose()
+  pdfStatus: InvoicePdfStatus;
+
+  /** Status pengiriman email (PENDING/SENT/FAILED). */
+  @Expose()
+  emailStatus: InvoiceEmailStatus;
+
+  @Expose()
+  sentAt: Date | null;
 
   @Expose()
   createdAt: Date;

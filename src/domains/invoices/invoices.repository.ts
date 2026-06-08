@@ -39,10 +39,13 @@ export class InvoicesRepository extends BaseRepository {
     return invoice;
   }
 
-  async updatePdfKey(id: string, pdfKey: string): Promise<SelectInvoices> {
+  async update(
+    id: string,
+    payload: Partial<InsertInvoices>
+  ): Promise<SelectInvoices> {
     const [invoice] = await this.db
       .update(invoices)
-      .set({ pdfKey })
+      .set(payload)
       .where(eq(invoices.id, id))
       .returning();
     return invoice;

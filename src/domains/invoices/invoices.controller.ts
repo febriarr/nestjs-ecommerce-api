@@ -33,11 +33,27 @@ export class InvoicesController {
     return this.invoicesService.findById(id);
   }
 
-  @Post(':id/pdf')
-  async generatePdf(
+  /**
+   * Tandai invoice PAID lalu picu pipeline generate PDF + kirim email (queue).
+   *
+   * NOTE: endpoint ini adalah placeholder integration seam. Saat payment webhook
+   * dibuat, webhook yang akan memanggil `invoicesService.markAsPaid(id)` setelah
+   * verifikasi pembayaran (sekaligus menandai order paid).
+   */
+  @Post(':id/mark-paid')
+  async markPaid(
     @Param('id', ParseUUIDPipe) id: string
   ): Promise<InvoiceResponseDto> {
-    return this.invoicesService.generateInvoicePdf(id);
+    return this.invoicesService.markAsPaid(id);
+  }
+
+  /** Kirim ulang invoice (re-enqueue generate + email). */
+  @Post(':id/send')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async send(
+    @Param('id', ParseUUIDPipe) id: string
+  ): Promise<InvoiceResponseDto> {
+    return this.invoicesService.requeueDelivery(id);
   }
 
   /**
