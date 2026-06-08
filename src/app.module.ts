@@ -7,6 +7,7 @@ import { MailModule } from './infrastructure/mail/mail.module';
 import { AuthModule } from './domains/auth/auth.module';
 import { OtpModule } from './domains/otp/otp.module';
 import { SessionsModule } from './domains/sessions/sessions.module';
+import { BrandsModule } from './domains/brands/brands.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { SessionsModule } from './domains/sessions/sessions.module';
     AuthModule,
     OtpModule,
     SessionsModule,
+    BrandsModule,
   ],
 })
 export class AppModule implements NestModule {
