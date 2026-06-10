@@ -55,4 +55,5 @@ export type ErrorCategory =
   | 'STORAGE'
   | 'MEDIA'
   | 'INVOICE'
-  | 'PRODUCT';
+  | 'PRODUCT'
+  | 'ATTRIBUTE';

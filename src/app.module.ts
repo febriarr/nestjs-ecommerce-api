@@ -14,6 +14,8 @@ import { PdfModule } from './infrastructure/pdf/pdf.module';
 import { QueueModule } from './infrastructure/queue/queue.module';
 import { InvoicesModule } from './domains/invoices/invoices.module';
 import { ProductsModule } from './domains/products/products.module';
+import { CategoriesModule } from './domains/categories/categories.module';
+import { AttributesModule } from './domains/attributes/attributes.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { ProductsModule } from './domains/products/products.module';
     QueueModule,
     InvoicesModule,
     ProductsModule,
+    CategoriesModule,
+    AttributesModule,
   ],
 })
 export class AppModule implements NestModule {
