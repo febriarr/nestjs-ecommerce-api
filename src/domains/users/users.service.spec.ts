@@ -1,15 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
+import { UsersRepository } from './users.repository';
 
 describe('UsersService', () => {
   let service: UsersService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService],
-    }).compile();
-
-    service = module.get<UsersService>(UsersService);
+  beforeEach(() => {
+    const repo = {
+      insert: jest.fn(),
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      update: jest.fn(),
+    } as unknown as UsersRepository;
+    service = new UsersService(repo);
   });
 
   it('should be defined', () => {

@@ -1,15 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { OtpService } from './otp.service';
+import { OtpRepository } from './otp.repository';
 
 describe('OtpService', () => {
   let service: OtpService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [OtpService],
-    }).compile();
-
-    service = module.get<OtpService>(OtpService);
+  beforeEach(() => {
+    const repo = {
+      saveOtp: jest.fn(),
+      findActiveOtp: jest.fn(),
+      markUsed: jest.fn(),
+      incrementAttempts: jest.fn(),
+    } as unknown as OtpRepository;
+    service = new OtpService(repo);
   });
 
   it('should be defined', () => {
