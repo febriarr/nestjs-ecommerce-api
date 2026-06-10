@@ -22,6 +22,13 @@
       "when": 1781092673663,
       "tag": "0002_aberrant_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781095977304,
+      "tag": "0003_chubby_the_spike",
+      "breakpoints": true
     }
   ]
 }
