@@ -1,5 +1,6 @@
 import { CompanyInfo } from '../../../infrastructure/config/company.config';
 import { InvoiceItemSnapshot } from '../../../infrastructure/database/schema';
+import { formatRupiah } from '../../../common/utils/currency.util';
 
 export interface InvoiceTemplateData {
   company: CompanyInfo;
@@ -12,21 +13,9 @@ export interface InvoiceTemplateData {
   total: number;
 }
 
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
   dateStyle: 'long',
 });
-
-/** Format nominal Rupiah Indonesia (mis. `Rp1.500.000`). */
-export function formatRupiah(value: number): string {
-  return rupiahFormatter.format(value);
-}
 
 function escapeHtml(value: string): string {
   return value
