@@ -25,8 +25,18 @@ export interface InvoiceItemSnapshot {
   lineTotal: number;
 }
 
-/** Status pembayaran invoice. */
-export type InvoicePaymentStatus = 'UNPAID' | 'PAID';
+/**
+ * Status pembayaran invoice. Mendukung transaksi online maupun offline
+ * (grosir/vendor): pembayaran bertahap (DP/cicilan), jatuh tempo, pembatalan.
+ */
+export const INVOICE_PAYMENT_STATUSES = [
+  'UNPAID',
+  'PARTIALLY_PAID',
+  'PAID',
+  'OVERDUE',
+  'VOID',
+] as const;
+export type InvoicePaymentStatus = (typeof INVOICE_PAYMENT_STATUSES)[number];
 /** Status pipeline pembuatan PDF (queue). */
 export type InvoicePdfStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED';
 /** Status pengiriman email invoice (queue). */
@@ -51,6 +61,10 @@ export const invoices = pgTable(
       .$type<InvoicePaymentStatus>()
       .default('UNPAID')
       .notNull(),
+    /** Akumulasi nominal yang sudah dibayar (Rupiah penuh). */
+    amountPaid: bigint('amount_paid', { mode: 'number' }).default(0).notNull(),
+    /** Tanggal jatuh tempo (untuk OVERDUE / tagihan vendor net-N). */
+    dueDate: timestamp('due_date', { mode: 'date', withTimezone: true }),
     paidAt: timestamp('paid_at', { mode: 'date', withTimezone: true }),
     pdfKey: varchar('pdf_key', { length: 512 }),
     pdfStatus: varchar('pdf_status', { length: 20 })

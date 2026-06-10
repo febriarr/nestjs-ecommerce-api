@@ -15,3 +15,17 @@ export const InvoicePdfGenerationFailedException = defineAppError({
   message: 'Gagal membuat PDF invoice.',
   status: HttpStatus.INTERNAL_SERVER_ERROR,
 });
+
+export const InvoiceInvalidStatusTransitionException = defineAppError({
+  code: ERROR_CODES.INVOICE_INVALID_STATUS_TRANSITION,
+  category: 'INVOICE',
+  message: 'Perubahan status invoice tidak diperbolehkan.',
+  status: HttpStatus.CONFLICT,
+});
+
+export const InvoiceInvalidPaymentException = defineAppError({
+  code: ERROR_CODES.INVOICE_INVALID_PAYMENT,
+  category: 'INVOICE',
+  message: 'Nominal pembayaran tidak sesuai dengan status yang diminta.',
+  status: HttpStatus.UNPROCESSABLE_ENTITY,
+});

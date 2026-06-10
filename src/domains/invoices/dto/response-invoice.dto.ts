@@ -31,9 +31,20 @@ export class InvoiceResponseDto {
   @Expose()
   total: number;
 
-  /** Status pembayaran (UNPAID/PAID). */
+  /** Status pembayaran (UNPAID/PARTIALLY_PAID/PAID/OVERDUE/VOID). */
   @Expose()
   status: InvoicePaymentStatus;
+
+  /** Akumulasi nominal yang sudah dibayar (Rupiah penuh). */
+  @Expose()
+  amountPaid: number;
+
+  /** Sisa tagihan = total - amountPaid (>= 0). */
+  @Expose()
+  amountDue: number;
+
+  @Expose()
+  dueDate: Date | null;
 
   @Expose()
   paidAt: Date | null;

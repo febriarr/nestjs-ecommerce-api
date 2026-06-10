@@ -6,12 +6,14 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDTO } from './dto/create-invoice.dto';
+import { UpdateInvoiceStatusDTO } from './dto/update-invoice-status.dto';
 import { InvoiceResponseDto } from './dto/response-invoice.dto';
 
 @Controller('invoices')
@@ -34,17 +36,19 @@ export class InvoicesController {
   }
 
   /**
-   * Tandai invoice PAID lalu picu pipeline generate PDF + kirim email (queue).
+   * Ubah status pembayaran (UNPAID/PARTIALLY_PAID/PAID/OVERDUE/VOID) dengan
+   * transisi tervalidasi. Mendukung transaksi online maupun offline.
    *
-   * NOTE: endpoint ini adalah placeholder integration seam. Saat payment webhook
-   * dibuat, webhook yang akan memanggil `invoicesService.markAsPaid(id)` setelah
-   * verifikasi pembayaran (sekaligus menandai order paid).
+   * NOTE: endpoint ini juga integration seam payment webhook. Saat webhook
+   * dibuat, webhook memanggil `invoicesService.updatePaymentStatus(id, ...)`
+   * setelah verifikasi pembayaran (sekaligus menandai order paid).
    */
-  @Post(':id/mark-paid')
-  async markPaid(
-    @Param('id', ParseUUIDPipe) id: string
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateInvoiceStatusDTO
   ): Promise<InvoiceResponseDto> {
-    return this.invoicesService.markAsPaid(id);
+    return this.invoicesService.updatePaymentStatus(id, dto);
   }
 
   /** Kirim ulang invoice (re-enqueue generate + email). */

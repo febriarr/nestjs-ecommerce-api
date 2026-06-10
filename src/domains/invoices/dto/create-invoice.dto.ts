@@ -48,6 +48,10 @@ export class CreateInvoiceDTO {
   @IsDateString()
   issueDate?: string;
 
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
