@@ -1,10 +1,12 @@
 CREATE TYPE "public"."variant_status" AS ENUM('active', 'inactive');--> statement-breakpoint
 CREATE TYPE "public"."discount_type" AS ENUM('PERCENTAGE', 'FIXED');--> statement-breakpoint
 CREATE TYPE "public"."product_status" AS ENUM('draft', 'active', 'inactive');--> statement-breakpoint
+CREATE SEQUENCE "public"."variant_sku_number_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1000000000 CACHE 1;--> statement-breakpoint
 CREATE TABLE "product_variants" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"product_id" bigint NOT NULL,
-	"sku" varchar(100) NOT NULL,
+	"sku_number" bigint DEFAULT nextval('variant_sku_number_seq') NOT NULL,
+	"sku_code" varchar(100) NOT NULL,
 	"variant_name" varchar(200),
 	"price" bigint NOT NULL,
 	"compare_at_price" bigint,
@@ -15,7 +17,8 @@ CREATE TABLE "product_variants" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
-	CONSTRAINT "product_variants_sku_unique" UNIQUE("sku")
+	CONSTRAINT "product_variants_sku_number_unique" UNIQUE("sku_number"),
+	CONSTRAINT "product_variants_sku_code_unique" UNIQUE("sku_code")
 );
 --> statement-breakpoint
 CREATE TABLE "variant_attributes" (
@@ -100,7 +103,8 @@ ALTER TABLE "products" ADD CONSTRAINT "products_category_id_categories_id_fk" FO
 ALTER TABLE "products" ADD CONSTRAINT "products_brand_id_brands_id_fk" FOREIGN KEY ("brand_id") REFERENCES "public"."brands"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_thumbnail_media_id_product_media_id_fk" FOREIGN KEY ("thumbnail_media_id") REFERENCES "public"."product_media"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "product_variants_sku_idx" ON "product_variants" USING btree ("sku");--> statement-breakpoint
+CREATE UNIQUE INDEX "product_variants_sku_number_idx" ON "product_variants" USING btree ("sku_number");--> statement-breakpoint
+CREATE UNIQUE INDEX "product_variants_sku_code_idx" ON "product_variants" USING btree ("sku_code");--> statement-breakpoint
 CREATE INDEX "product_variants_product_id_idx" ON "product_variants" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "product_variants_status_idx" ON "product_variants" USING btree ("status");--> statement-breakpoint
 CREATE UNIQUE INDEX "product_variants_one_default_idx" ON "product_variants" USING btree ("product_id") WHERE "product_variants"."is_default" = true;--> statement-breakpoint

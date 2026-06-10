@@ -6,15 +6,23 @@ export interface PaginationMeta {
   nextCursor?: string;
   prevCursor?: string;
 }
+
+/** Metadata cursor pagination (keyset, tanpa count). */
+export interface CursorPaginationMeta {
+  limit: number;
+  hasNextPage: boolean;
+  nextCursor: string | null;
+}
+
 export interface ApiSuccessResponse<T> {
   ok: boolean;
   data: T;
-  metadata?: PaginationMeta | Record<string, unknown>;
+  metadata?: PaginationMeta | CursorPaginationMeta | Record<string, unknown>;
 }
 
 export interface WithMetadata<T> {
   data: T;
-  metadata: PaginationMeta | Record<string, unknown>;
+  metadata: PaginationMeta | CursorPaginationMeta | Record<string, unknown>;
 }
 
 export interface ApiErrorPayload {
@@ -46,4 +54,5 @@ export type ErrorCategory =
   | 'RATE_LIMIT'
   | 'STORAGE'
   | 'MEDIA'
-  | 'INVOICE';
+  | 'INVOICE'
+  | 'PRODUCT';

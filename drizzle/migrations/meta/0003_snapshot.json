@@ -1,5 +1,5 @@
 {
-  "id": "d6cf6db0-75dd-4dff-842f-62dcc16d384b",
+  "id": "20eb9d43-0779-4ebc-af4d-654e8db03dcc",
   "prevId": "23427569-ced1-4ea1-b85c-613568842dd2",
   "version": "7",
   "dialect": "postgresql",
@@ -794,8 +794,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "sku": {
-          "name": "sku",
+        "sku_number": {
+          "name": "sku_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('variant_sku_number_seq')"
+        },
+        "sku_code": {
+          "name": "sku_code",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
@@ -868,11 +875,26 @@
         }
       },
       "indexes": {
-        "product_variants_sku_idx": {
-          "name": "product_variants_sku_idx",
+        "product_variants_sku_number_idx": {
+          "name": "product_variants_sku_number_idx",
           "columns": [
             {
-              "expression": "sku",
+              "expression": "sku_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "product_variants_sku_code_idx": {
+          "name": "product_variants_sku_code_idx",
+          "columns": [
+            {
+              "expression": "sku_code",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -947,11 +969,18 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "product_variants_sku_unique": {
-          "name": "product_variants_sku_unique",
+        "product_variants_sku_number_unique": {
+          "name": "product_variants_sku_number_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "sku"
+            "sku_number"
+          ]
+        },
+        "product_variants_sku_code_unique": {
+          "name": "product_variants_sku_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sku_code"
           ]
         }
       },
@@ -2514,7 +2543,18 @@
     }
   },
   "schemas": {},
-  "sequences": {},
+  "sequences": {
+    "public.variant_sku_number_seq": {
+      "name": "variant_sku_number_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "1000000000",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
   "roles": {},
   "policies": {},
   "views": {},

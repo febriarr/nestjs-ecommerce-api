@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   pgTable,
   pgEnum,
+  pgSequence,
   bigserial,
   bigint,
   varchar,
@@ -22,6 +23,11 @@ export const variantStatusEnum = pgEnum('variant_status', [
 ]);
 export type VariantStatus = (typeof variantStatusEnum.enumValues)[number];
 
+/** Sequence untuk SKU publik numerik (skuNumber), mulai dari 1_000_000_000. */
+export const variantSkuNumberSeq = pgSequence('variant_sku_number_seq', {
+  startWith: 1000000000,
+});
+
 /**
  * product_variants — SKU konkret dari sebuah product (mis. "Red / 42").
  * Inilah unit yang punya harga & stok. Seluruh nominal dalam Rupiah penuh.
@@ -33,7 +39,13 @@ export const productVariants = pgTable(
     productId: bigint('product_id', { mode: 'number' })
       .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
-    sku: varchar('sku', { length: 100 }).notNull().unique(),
+    /** SKU publik numerik — auto dari sequence, tanpa input manual. */
+    skuNumber: bigint('sku_number', { mode: 'number' })
+      .notNull()
+      .unique()
+      .default(sql`nextval('variant_sku_number_seq')`),
+    /** SKU internal human-readable (BRAND-CAT-VAL...); auto, bisa override. */
+    skuCode: varchar('sku_code', { length: 100 }).notNull().unique(),
     variantName: varchar('variant_name', { length: 200 }),
     price: bigint('price', { mode: 'number' }).notNull(),
     compareAtPrice: bigint('compare_at_price', { mode: 'number' }),
@@ -45,7 +57,8 @@ export const productVariants = pgTable(
     ...timestamps,
   },
   (t) => [
-    uniqueIndex('product_variants_sku_idx').on(t.sku),
+    uniqueIndex('product_variants_sku_number_idx').on(t.skuNumber),
+    uniqueIndex('product_variants_sku_code_idx').on(t.skuCode),
     index('product_variants_product_id_idx').on(t.productId),
     index('product_variants_status_idx').on(t.status),
     // hanya boleh ada SATU variant default per product
