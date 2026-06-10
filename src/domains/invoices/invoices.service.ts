@@ -5,11 +5,13 @@ import { uuidv7 } from 'uuidv7';
 import { InvoicesRepository } from './invoices.repository';
 import { InvoiceQueueProducer } from './invoices.queue';
 import { CreateInvoiceDTO } from './dto/create-invoice.dto';
+import { UpdateInvoiceStatusDTO } from './dto/update-invoice-status.dto';
 import { InvoiceResponseDto } from './dto/response-invoice.dto';
 import { renderInvoiceHtml } from './templates/invoice.template';
 import {
   InsertInvoices,
   InvoiceItemSnapshot,
+  InvoicePaymentStatus,
   SelectInvoices,
 } from '../../infrastructure/database/schema';
 import { CompanyConfigService } from '../../infrastructure/config/company.config';
@@ -21,12 +23,26 @@ import { MailService } from '../../infrastructure/mail/mail.service';
 import { streamToBuffer } from '../../common/utils/stream.util';
 import { AppException } from '../../common/exceptions/app-exceptions';
 import {
+  InvoiceInvalidPaymentException,
+  InvoiceInvalidStatusTransitionException,
   InvoiceNotFoundException,
   InvoicePdfGenerationFailedException,
 } from '../../common/exceptions/domains/invoice.exceptions';
 
 const PDF_CONTENT_TYPE = 'application/pdf';
 const FAILURE_REASON_MAX = 512;
+
+/** Transisi status pembayaran yang diperbolehkan dari setiap status. */
+const ALLOWED_TRANSITIONS: Record<
+  InvoicePaymentStatus,
+  readonly InvoicePaymentStatus[]
+> = {
+  UNPAID: ['PARTIALLY_PAID', 'PAID', 'OVERDUE', 'VOID'],
+  PARTIALLY_PAID: ['PARTIALLY_PAID', 'PAID', 'OVERDUE', 'VOID'],
+  OVERDUE: ['PARTIALLY_PAID', 'PAID', 'VOID'],
+  PAID: [],
+  VOID: [],
+};
 
 export interface InvoicePdfStream {
   stream: Readable;
@@ -71,9 +87,10 @@ export class InvoicesService {
       subtotal,
       total,
       ...(dto.issueDate ? { issueDate: new Date(dto.issueDate) } : {}),
+      ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     };
 
-    // Status awal UNPAID; PDF & email belum diproses (lihat markAsPaid).
+    // Status awal UNPAID; PDF & email belum diproses (lihat updatePaymentStatus).
     const invoice = await this.invoicesRepository.insert(payload);
     return this.toInvoiceResponse(invoice);
   }
@@ -84,28 +101,99 @@ export class InvoicesService {
   }
 
   /**
-   * Tandai invoice sebagai PAID lalu picu pipeline generate PDF + kirim email.
+   * Ubah status pembayaran invoice dengan transisi tervalidasi, mendukung
+   * transaksi online maupun offline (DP/cicilan, jatuh tempo, pembatalan).
    *
-   * Ini adalah integration seam untuk payment webhook (belum ada). Nanti webhook
-   * cukup memanggil method ini setelah verifikasi pembayaran & set order paid.
-   * Idempotent: bila sudah PAID, tidak memicu ulang.
+   * - PAID / PARTIALLY_PAID → `amountPaid` divalidasi terhadap `total`, lalu
+   *   memicu pipeline generate PDF + kirim email (bila ada perubahan pembayaran).
+   * - OVERDUE / VOID → hanya transisi status, tanpa pipeline.
+   *
+   * Integration seam untuk payment webhook (belum ada): webhook cukup memanggil
+   * `updatePaymentStatus(id, { status: 'PAID', amountPaid: total })` setelah
+   * verifikasi pembayaran & menandai order paid. Idempotent terhadap input sama.
    */
-  async markAsPaid(id: string): Promise<InvoiceResponseDto> {
+  async updatePaymentStatus(
+    id: string,
+    dto: UpdateInvoiceStatusDTO
+  ): Promise<InvoiceResponseDto> {
     const invoice = await this.getInvoiceOrThrow(id);
+    const current = invoice.status;
+    const target = dto.status;
 
-    if (invoice.status === 'PAID') {
-      this.logger.log(`Invoice ${invoice.invoiceNumber} sudah PAID — dilewati`);
+    // Idempotent untuk status terminal.
+    if (current === target && (target === 'PAID' || target === 'VOID')) {
       return this.toInvoiceResponse(invoice);
     }
 
-    const paid = await this.invoicesRepository.update(id, {
-      status: 'PAID',
-      paidAt: new Date(),
-    });
+    this.assertTransitionAllowed(current, target);
 
-    await this.queueProducer.enqueueGeneratePdf(id);
+    const { patch, isPaymentEvent } = this.buildStatusPatch(invoice, dto);
+    const updated = await this.invoicesRepository.update(id, patch);
 
-    return this.toInvoiceResponse(paid);
+    if (isPaymentEvent) {
+      await this.queueProducer.enqueueGeneratePdf(id);
+    }
+
+    return this.toInvoiceResponse(updated);
+  }
+
+  /** Susun payload update + tentukan apakah ini event pembayaran (perlu pipeline). */
+  private buildStatusPatch(
+    invoice: SelectInvoices,
+    dto: UpdateInvoiceStatusDTO
+  ): { patch: Partial<InsertInvoices>; isPaymentEvent: boolean } {
+    switch (dto.status) {
+      case 'PAID': {
+        const amountPaid = dto.amountPaid ?? invoice.total;
+        if (amountPaid < invoice.total) {
+          throw InvoiceInvalidPaymentException({
+            details: { amountPaid, total: invoice.total },
+          });
+        }
+        return {
+          patch: { status: 'PAID', amountPaid, paidAt: new Date() },
+          isPaymentEvent:
+            invoice.status !== 'PAID' || amountPaid !== invoice.amountPaid,
+        };
+      }
+      case 'PARTIALLY_PAID': {
+        if (
+          dto.amountPaid === undefined ||
+          dto.amountPaid <= 0 ||
+          dto.amountPaid >= invoice.total
+        ) {
+          throw InvoiceInvalidPaymentException({
+            details: { amountPaid: dto.amountPaid, total: invoice.total },
+          });
+        }
+        return {
+          patch: { status: 'PARTIALLY_PAID', amountPaid: dto.amountPaid },
+          isPaymentEvent:
+            invoice.status !== 'PARTIALLY_PAID' ||
+            dto.amountPaid !== invoice.amountPaid,
+        };
+      }
+      case 'OVERDUE':
+        return { patch: { status: 'OVERDUE' }, isPaymentEvent: false };
+      case 'VOID':
+        return { patch: { status: 'VOID' }, isPaymentEvent: false };
+      default:
+        // UNPAID tidak dapat di-set manual (sudah ditolak assertTransitionAllowed).
+        throw InvoiceInvalidStatusTransitionException({
+          details: { from: invoice.status, to: dto.status },
+        });
+    }
+  }
+
+  private assertTransitionAllowed(
+    current: InvoicePaymentStatus,
+    target: InvoicePaymentStatus
+  ): void {
+    if (!ALLOWED_TRANSITIONS[current].includes(target)) {
+      throw InvoiceInvalidStatusTransitionException({
+        details: { from: current, to: target },
+      });
+    }
   }
 
   /**
@@ -180,6 +268,10 @@ export class InvoicesService {
         customerName: invoice.customerName,
         invoiceNumber: invoice.invoiceNumber,
         pdf,
+        isFullyPaid: invoice.status === 'PAID',
+        total: invoice.total,
+        amountPaid: invoice.amountPaid,
+        amountDue: Math.max(0, invoice.total - invoice.amountPaid),
       });
 
       await this.invoicesRepository.update(id, {
@@ -243,6 +335,9 @@ export class InvoicesService {
       subtotal: invoice.subtotal,
       total: invoice.total,
       status: invoice.status,
+      amountPaid: invoice.amountPaid,
+      amountDue: Math.max(0, invoice.total - invoice.amountPaid),
+      dueDate: invoice.dueDate,
       paidAt: invoice.paidAt,
       pdfKey: invoice.pdfKey,
       pdfUrl:

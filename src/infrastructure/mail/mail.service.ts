@@ -1,12 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { formatRupiah } from '../../common/utils/currency.util';
 
 export interface SendInvoiceParams {
   to: string;
   customerName: string;
   invoiceNumber: string;
   pdf: Buffer;
+  /** True bila lunas penuh; false bila pembayaran sebagian (PARTIALLY_PAID). */
+  isFullyPaid: boolean;
+  total: number;
+  amountPaid: number;
+  amountDue: number;
 }
 
 @Injectable()
@@ -27,23 +33,19 @@ export class MailService {
    * agar job BullMQ dapat melakukan retry.
    */
   async sendInvoice(params: SendInvoiceParams): Promise<void> {
-    const { to, customerName, invoiceNumber, pdf } = params;
+    const { to, customerName, invoiceNumber, pdf, isFullyPaid } = params;
+
+    const subject = isFullyPaid
+      ? `Invoice ${invoiceNumber} - Lunas`
+      : `Invoice ${invoiceNumber} - Pembayaran Sebagian`;
+
     const { error } = await this.resend.emails.send({
       from: this.from,
       to,
-      subject: `Invoice ${invoiceNumber}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2>Halo, ${customerName}!</h2>
-          <p>
-            Terlampir invoice <strong>${invoiceNumber}</strong> atas pembayaran
-            Anda yang telah kami terima. Terima kasih.
-          </p>
-          <p style="color: #71717a; font-size: 14px;">
-            File PDF invoice terlampir pada email ini.
-          </p>
-        </div>
-      `,
+      subject,
+      html: isFullyPaid
+        ? this.buildPaidHtml(customerName, invoiceNumber)
+        : this.buildPartiallyPaidHtml(customerName, invoiceNumber, params),
       attachments: [{ filename: `${invoiceNumber}.pdf`, content: pdf }],
     });
 
@@ -54,6 +56,57 @@ export class MailService {
       );
       throw new Error(`Resend gagal mengirim invoice: ${error.message}`);
     }
+  }
+
+  private buildPaidHtml(customerName: string, invoiceNumber: string): string {
+    return `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2>Halo, ${customerName}!</h2>
+        <p>
+          Pembayaran Anda untuk invoice <strong>${invoiceNumber}</strong> telah
+          <strong>LUNAS</strong> dan kami terima. Terima kasih.
+        </p>
+        <p style="color: #71717a; font-size: 14px;">
+          Invoice resmi terlampir sebagai file PDF pada email ini.
+        </p>
+      </div>
+    `;
+  }
+
+  private buildPartiallyPaidHtml(
+    customerName: string,
+    invoiceNumber: string,
+    params: SendInvoiceParams
+  ): string {
+    return `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2>Halo, ${customerName}!</h2>
+        <p>
+          Kami telah menerima <strong>pembayaran sebagian</strong> untuk invoice
+          <strong>${invoiceNumber}</strong>.
+        </p>
+        <table style="width: 100%; font-size: 14px; margin: 16px 0;">
+          <tr>
+            <td style="color: #71717a;">Total tagihan</td>
+            <td style="text-align: right;">${formatRupiah(params.total)}</td>
+          </tr>
+          <tr>
+            <td style="color: #71717a;">Sudah dibayar</td>
+            <td style="text-align: right;">${formatRupiah(params.amountPaid)}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">Sisa tagihan</td>
+            <td style="text-align: right; font-weight: bold;">
+              ${formatRupiah(params.amountDue)}
+            </td>
+          </tr>
+        </table>
+        <p style="color: #71717a; font-size: 14px;">
+          Rincian invoice terlampir sebagai file PDF pada email ini. Mohon
+          melunasi sisa tagihan sebelum jatuh tempo.
+        </p>
+      </div>
+    `;
   }
 
   async sendOtp(email: string, name: string, otp: string, purpose: string) {
