@@ -15,6 +15,20 @@ export function decodeCursor(cursor?: string): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/** Encode id string (uuid) menjadi cursor opaque (base64url). */
+export function encodeStringCursor(id: string): string {
+  return Buffer.from(id, 'utf8').toString('base64url');
+}
+
+/** Decode cursor menjadi id string; null bila kosong. */
+export function decodeStringCursor(cursor?: string): string | null {
+  if (!cursor) {
+    return null;
+  }
+  const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+  return decoded.length > 0 ? decoded : null;
+}
+
 /**
  * Bentuk hasil paginasi keyset (tanpa count) dari deretan baris yang diambil
  * sebanyak `limit + 1`. Mengembalikan item terpotong + metadata cursor.
@@ -37,6 +51,29 @@ export function buildCursorPage<T>(
       limit,
       hasNextPage,
       nextCursor: hasNextPage && last ? encodeCursor(getId(last)) : null,
+    },
+  };
+}
+
+/**
+ * Varian buildCursorPage untuk tabel ber-id string (uuid). Tetap keyset:
+ * uuidv7 time-ordered sehingga perbandingan byte-wise uuid di PG valid
+ * sebagai urutan waktu.
+ */
+export function buildStringCursorPage<T>(
+  rows: T[],
+  limit: number,
+  getId: (row: T) => string
+): { items: T[]; meta: CursorPaginationMeta } {
+  const hasNextPage = rows.length > limit;
+  const items = hasNextPage ? rows.slice(0, limit) : rows;
+  const last = items.at(-1);
+  return {
+    items,
+    meta: {
+      limit,
+      hasNextPage,
+      nextCursor: hasNextPage && last ? encodeStringCursor(getId(last)) : null,
     },
   };
 }

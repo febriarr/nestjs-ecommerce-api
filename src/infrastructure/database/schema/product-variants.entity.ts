@@ -49,7 +49,8 @@ export const productVariants = pgTable(
     variantName: varchar('variant_name', { length: 200 }),
     price: bigint('price', { mode: 'number' }).notNull(),
     compareAtPrice: bigint('compare_at_price', { mode: 'number' }),
-    stock: integer('stock').default(0).notNull(),
+    // Stok TIDAK disimpan di sini — per-outlet di outlet_inventory
+    // (outletId + variantId + stock + reservedStock).
     /** Berat dalam gram (untuk ongkir). */
     weight: integer('weight'),
     isDefault: boolean('is_default').default(false).notNull(),

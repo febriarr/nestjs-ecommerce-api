@@ -29,3 +29,22 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
   removeOnComplete: true,
   removeOnFail: false,
 };
+
+/** Nama queue untuk seluruh job terkait order. */
+export const ORDER_QUEUE = 'order' as const;
+
+/** Nama job di dalam ORDER_QUEUE. */
+export const ORDER_JOB = {
+  /** Lepas reservasi stok & tandai EXPIRED bila order masih PENDING. */
+  EXPIRE: 'expire',
+} as const;
+
+export type OrderJobName = (typeof ORDER_JOB)[keyof typeof ORDER_JOB];
+
+/** Payload job order (cukup id; data lengkap diambil dari DB di worker). */
+export interface OrderJobData {
+  orderId: string;
+}
+
+/** Batas job order aktif bersamaan per worker (operasi DB ringan). */
+export const ORDER_WORKER_CONCURRENCY = 5;

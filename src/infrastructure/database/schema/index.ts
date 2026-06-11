@@ -19,3 +19,11 @@ export * from './invoices.entity';
 export * from './products.entity';
 export * from './product-variants.entity';
 export * from './products.relations';
+//outlets
+export * from './outlets.entity';
+//carts
+export * from './carts.entity';
+//orders
+export * from './orders.entity';
+//payments
+export * from './payments.entity';

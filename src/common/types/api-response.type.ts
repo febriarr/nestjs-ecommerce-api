@@ -56,4 +56,7 @@ export type ErrorCategory =
   | 'MEDIA'
   | 'INVOICE'
   | 'PRODUCT'
-  | 'ATTRIBUTE';
+  | 'ATTRIBUTE'
+  | 'OUTLET'
+  | 'CART'
+  | 'ORDER';

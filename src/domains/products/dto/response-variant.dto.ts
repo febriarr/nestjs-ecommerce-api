@@ -40,8 +40,9 @@ export class VariantResponseDto {
   @Expose()
   compareAtPrice: number | null;
 
+  /** Total stok tersedia (stock - reserved) dijumlahkan lintas outlet. */
   @Expose()
-  stock: number;
+  totalStock: number;
 
   @Expose()
   weight: number | null;

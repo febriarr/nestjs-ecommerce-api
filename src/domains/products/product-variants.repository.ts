@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
@@ -7,6 +7,7 @@ import {
   attributeValues,
   InsertProductVariant,
   InsertVariantMedia,
+  outletInventory,
   productAttributes,
   productMedia,
   productVariants,
@@ -61,6 +62,17 @@ export class ProductVariantsRepository extends BaseRepository {
         )
       )
       .orderBy(productVariants.id);
+  }
+
+  /** Total stok tersedia (stock - reserved) lintas outlet untuk satu variant. */
+  async totalAvailableStock(variantId: number): Promise<number> {
+    const rows = await this.db
+      .select({
+        total: sql<number>`coalesce(sum(${outletInventory.stock} - ${outletInventory.reservedStock}), 0)::int`,
+      })
+      .from(outletInventory)
+      .where(eq(outletInventory.variantId, variantId));
+    return rows[0]?.total ?? 0;
   }
 
   async skuCodeExists(skuCode: string): Promise<boolean> {

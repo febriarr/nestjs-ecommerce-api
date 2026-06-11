@@ -40,10 +40,7 @@ export class CreateVariantDTO {
   @Min(0)
   compareAtPrice?: number;
 
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  stock?: number;
+  // Stok TIDAK di-set di sini — per-outlet via PUT /outlets/:id/inventory/:variantId.
 
   /** Berat dalam gram. */
   @IsOptional()

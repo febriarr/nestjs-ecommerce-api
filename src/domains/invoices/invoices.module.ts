@@ -26,5 +26,7 @@ import { INVOICE_QUEUE } from '../../infrastructure/queue/queue.constants';
     InvoicesProcessor,
     CompanyConfigService,
   ],
+  // Dipakai orders (buat invoice saat checkout) & payments (tandai PAID/VOID).
+  exports: [InvoicesService],
 })
 export class InvoicesModule {}

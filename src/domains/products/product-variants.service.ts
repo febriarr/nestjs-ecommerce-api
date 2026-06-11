@@ -54,7 +54,6 @@ export class ProductVariantsService {
       price: dto.price,
       compareAtPrice: dto.compareAtPrice ?? null,
       weight: dto.weight ?? null,
-      ...(dto.stock !== undefined ? { stock: dto.stock } : {}),
       ...(dto.isDefault !== undefined ? { isDefault: dto.isDefault } : {}),
     };
 
@@ -125,7 +124,6 @@ export class ProductVariantsService {
         ...(dto.compareAtPrice !== undefined
           ? { compareAtPrice: dto.compareAtPrice }
           : {}),
-        ...(dto.stock !== undefined ? { stock: dto.stock } : {}),
         ...(dto.weight !== undefined ? { weight: dto.weight } : {}),
         ...(dto.isDefault !== undefined ? { isDefault: dto.isDefault } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
@@ -266,13 +264,15 @@ export class ProductVariantsService {
   private async toVariantResponse(
     variant: SelectProductVariant
   ): Promise<VariantResponseDto> {
-    const [attributes, media] = await Promise.all([
+    const [attributes, media, totalStock] = await Promise.all([
       this.variantsRepo.listAttributes(variant.id),
       this.variantsRepo.listVariantMedia(variant.id),
+      this.variantsRepo.totalAvailableStock(variant.id),
     ]);
 
     return new VariantResponseDto({
       ...variant,
+      totalStock,
       attributes,
       media: media.map((m) => ({
         mediaId: m.mediaId,
