@@ -7,6 +7,7 @@ import {
   attributeValues,
   InsertProductVariant,
   InsertVariantMedia,
+  productAttributes,
   productMedia,
   productVariants,
   SelectProductVariant,
@@ -72,13 +73,15 @@ export class ProductVariantsRepository extends BaseRepository {
   }
 
   /**
-   * Buat variant + variant_attributes secara atomik. Bila `unsetDefaultFirst`,
-   * default lama di-nonaktifkan dulu agar partial unique index tidak bentrok.
+   * Buat variant secara atomik: (opsional) unset default lama → insert variant →
+   * insert variant_attributes → **auto-declare** product_attributes dari attribute
+   * yang dipakai (onConflictDoNothing) → link variant_media untuk `mediaIds`.
    */
   async createVariant(
     payload: InsertProductVariant,
     attributePairs: VariantAttributePair[],
-    unsetDefaultFirst: boolean
+    unsetDefaultFirst: boolean,
+    mediaIds: number[] = []
   ): Promise<SelectProductVariant> {
     return this.withTransaction(async (tx) => {
       if (unsetDefaultFirst) {
@@ -99,6 +102,30 @@ export class ProductVariantsRepository extends BaseRepository {
             variantId: variant.id,
             attributeId: pair.attributeId,
             attributeValueId: pair.attributeValueId,
+          }))
+        );
+
+        // Auto-declare attribute pada product (idempotent) — tanpa langkah terpisah.
+        const declaredIds = [
+          ...new Set(attributePairs.map((pair) => pair.attributeId)),
+        ];
+        await tx
+          .insert(productAttributes)
+          .values(
+            declaredIds.map((attributeId) => ({
+              productId: payload.productId,
+              attributeId,
+            }))
+          )
+          .onConflictDoNothing();
+      }
+
+      if (mediaIds.length > 0) {
+        await tx.insert(variantMedia).values(
+          mediaIds.map((mediaId, index) => ({
+            variantId: variant.id,
+            mediaId,
+            sortOrder: index,
           }))
         );
       }

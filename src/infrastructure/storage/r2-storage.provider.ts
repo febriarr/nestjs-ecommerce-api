@@ -6,7 +6,6 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
-  S3ServiceException,
 } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 import { StorageProvider } from './storage-provider.interface';
@@ -97,12 +96,20 @@ export class R2StorageProvider
     return Promise.resolve();
   }
 
+  /**
+   * Deteksi error "objek tidak ada" secara duck-typed — lebih andal daripada
+   * `instanceof` yang bisa gagal lintas module realm pada AWS SDK v3.
+   */
   private isNotFoundError(error: unknown): boolean {
-    if (error instanceof S3ServiceException) {
-      return (
-        error.name === 'NotFound' || error.$metadata.httpStatusCode === 404
-      );
-    }
-    return false;
+    if (typeof error !== 'object' || error === null) return false;
+    const err = error as {
+      name?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    return (
+      err.name === 'NotFound' ||
+      err.name === 'NoSuchKey' ||
+      err.$metadata?.httpStatusCode === 404
+    );
   }
 }

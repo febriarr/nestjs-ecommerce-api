@@ -34,8 +34,12 @@ export class ProductsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateProductDTO): Promise<ProductResponseDto> {
-    return this.productsService.create(dto);
+  @UseInterceptors(FileInterceptor('thumbnail'))
+  async create(
+    @Body() dto: CreateProductDTO,
+    @UploadedFile() thumbnail?: Express.Multer.File
+  ): Promise<ProductResponseDto> {
+    return this.productsService.create(dto, thumbnail);
   }
 
   @Get()

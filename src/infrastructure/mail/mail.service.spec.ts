@@ -51,7 +51,11 @@ describe('MailService.sendInvoice', () => {
 
   it('subjek berbeda untuk pembayaran sebagian', async () => {
     mockSend.mockResolvedValue({ error: null });
-    await service.sendInvoice({ ...params, isFullyPaid: false, amountDue: 50000 });
+    await service.sendInvoice({
+      ...params,
+      isFullyPaid: false,
+      amountDue: 50000,
+    });
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({

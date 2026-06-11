@@ -82,7 +82,6 @@ function makeVariantsRepo(): jest.Mocked<ProductVariantsRepository> {
 function makeProductsRepo(): jest.Mocked<ProductsRepository> {
   return {
     findById: jest.fn().mockResolvedValue(product),
-    declaredAttributeIds: jest.fn().mockResolvedValue([1, 2]),
     attributeValuesByIds: jest.fn(),
     brandNameById: jest.fn().mockResolvedValue('Nike'),
     recomputeMinPrice: jest.fn(),
@@ -134,15 +133,6 @@ describe('ProductVariantsService.create', () => {
   it('menolak bila ada attribute value yang tidak ditemukan', async () => {
     productsRepo.attributeValuesByIds.mockResolvedValue([
       attrValue(10, 1, 'Red'),
-    ]);
-    await expect(service.create(1, dto)).rejects.toBeInstanceOf(AppException);
-  });
-
-  it('menolak attribute yang tidak dideklarasikan produk', async () => {
-    productsRepo.declaredAttributeIds.mockResolvedValue([1]);
-    productsRepo.attributeValuesByIds.mockResolvedValue([
-      attrValue(10, 1, 'Red'),
-      attrValue(20, 2, '42'),
     ]);
     await expect(service.create(1, dto)).rejects.toBeInstanceOf(AppException);
   });

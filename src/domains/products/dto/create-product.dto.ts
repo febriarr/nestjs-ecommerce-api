@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -36,6 +36,7 @@ export class CreateProductDTO {
   categoryId: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   brandId?: number;
 

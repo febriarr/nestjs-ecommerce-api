@@ -6,29 +6,21 @@ import { AppException } from '../../common/exceptions/app-exceptions';
 const mockSend = jest.fn();
 const mockDestroy = jest.fn();
 
-jest.mock('@aws-sdk/client-s3', () => {
-  class S3ServiceException extends Error {
-    $metadata: { httpStatusCode?: number } = {};
-    constructor(opts?: {
-      name?: string;
-      $metadata?: { httpStatusCode?: number };
-    }) {
-      super(opts?.name);
-      if (opts?.name) this.name = opts.name;
-      if (opts?.$metadata) this.$metadata = opts.$metadata;
-    }
-  }
-  return {
-    S3Client: jest.fn(() => ({ send: mockSend, destroy: mockDestroy })),
-    PutObjectCommand: jest.fn((input: unknown) => ({ input })),
-    GetObjectCommand: jest.fn((input: unknown) => ({ input })),
-    HeadObjectCommand: jest.fn((input: unknown) => ({ input })),
-    DeleteObjectCommand: jest.fn((input: unknown) => ({ input })),
-    S3ServiceException,
-  };
-});
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3Client: jest.fn(() => ({ send: mockSend, destroy: mockDestroy })),
+  PutObjectCommand: jest.fn((input: unknown) => ({ input })),
+  GetObjectCommand: jest.fn((input: unknown) => ({ input })),
+  HeadObjectCommand: jest.fn((input: unknown) => ({ input })),
+  DeleteObjectCommand: jest.fn((input: unknown) => ({ input })),
+}));
 
-const { S3ServiceException } = jest.requireMock('@aws-sdk/client-s3');
+/** Error AWS S3 mirip kondisi nyata (duck-typed: name + $metadata). */
+function s3Error(name: string, httpStatusCode: number): Error {
+  return Object.assign(new Error(name), {
+    name,
+    $metadata: { httpStatusCode },
+  });
+}
 
 const config = {
   getOrThrow: jest.fn().mockReturnValue('dummy'),
@@ -72,22 +64,12 @@ describe('R2StorageProvider', () => {
   });
 
   it('exists false ketika objek NotFound (404)', async () => {
-    mockSend.mockRejectedValue(
-      new S3ServiceException({
-        name: 'NotFound',
-        $metadata: { httpStatusCode: 404 },
-      })
-    );
+    mockSend.mockRejectedValue(s3Error('NotFound', 404));
     await expect(provider.exists('missing')).resolves.toBe(false);
   });
 
   it('exists melempar ulang error non-404', async () => {
-    mockSend.mockRejectedValue(
-      new S3ServiceException({
-        name: 'AccessDenied',
-        $metadata: { httpStatusCode: 403 },
-      })
-    );
+    mockSend.mockRejectedValue(s3Error('AccessDenied', 403));
     await expect(provider.exists('x')).rejects.toThrow();
   });
 });

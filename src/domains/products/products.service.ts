@@ -46,7 +46,10 @@ export class ProductsService {
 
   // ---------- products ----------
 
-  async create(dto: CreateProductDTO): Promise<ProductResponseDto> {
+  async create(
+    dto: CreateProductDTO,
+    thumbnail?: Express.Multer.File
+  ): Promise<ProductResponseDto> {
     await this.assertCategory(dto.categoryId);
     if (dto.brandId !== undefined) await this.assertBrand(dto.brandId);
     await this.assertSlugAvailable(dto.slug);
@@ -63,7 +66,26 @@ export class ProductsService {
     };
 
     const product = await this.repo.insert(payload);
-    return this.toProductResponse(product);
+    if (!thumbnail) return this.toProductResponse(product);
+
+    // Thumbnail opsional di step 1: upload → product_media → set thumbnailMediaId.
+    const meta = await this.imageUpload.uploadImage(
+      thumbnail.buffer,
+      `${PRODUCT_MEDIA_PREFIX}/${product.id}`
+    );
+    try {
+      const media = await this.repo.insertMedia({
+        productId: product.id,
+        imageUrl: meta.key,
+      });
+      const updated = await this.repo.update(product.id, {
+        thumbnailMediaId: media.id,
+      });
+      return this.toProductResponse(updated);
+    } catch (error) {
+      await this.safeDeleteImage(meta.key);
+      throw error;
+    }
   }
 
   async list(

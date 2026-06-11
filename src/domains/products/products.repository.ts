@@ -224,15 +224,6 @@ export class ProductsRepository extends BaseRepository {
       );
   }
 
-  /** Set attributeId yang dideklarasikan sebuah product (untuk validasi variant). */
-  async declaredAttributeIds(productId: number): Promise<number[]> {
-    const rows = await this.db
-      .select({ attributeId: productAttributes.attributeId })
-      .from(productAttributes)
-      .where(eq(productAttributes.productId, productId));
-    return rows.map((r) => r.attributeId);
-  }
-
   // ---------- product_media ----------
 
   async listMedia(productId: number): Promise<SelectProductMedia[]> {

@@ -60,4 +60,13 @@ export class CreateVariantDTO {
   @ArrayNotEmpty()
   @IsInt({ each: true })
   attributeValueIds: number[];
+
+  /**
+   * Daftar id product_media yang di-link ke variant (gambar existing atau hasil
+   * upload sebelumnya). Harus milik product yang sama.
+   */
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  mediaIds?: number[];
 }

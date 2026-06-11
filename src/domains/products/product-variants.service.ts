@@ -43,10 +43,8 @@ export class ProductVariantsService {
     if (!product)
       throw ProductNotFoundException({ details: { id: productId } });
 
-    const pairs = await this.resolveAttributePairs(
-      productId,
-      dto.attributeValueIds
-    );
+    const pairs = await this.resolveAttributePairs(dto.attributeValueIds);
+    const mediaIds = await this.resolveMediaIds(productId, dto.mediaIds);
     const skuCode = await this.resolveSkuCode(product, dto);
 
     const payload: InsertProductVariant = {
@@ -60,13 +58,33 @@ export class ProductVariantsService {
       ...(dto.isDefault !== undefined ? { isDefault: dto.isDefault } : {}),
     };
 
+    // Attribute yang dipakai variant otomatis dideklarasikan ke product
+    // (lihat createVariant) — admin tidak perlu langkah deklarasi terpisah.
     const variant = await this.variantsRepo.createVariant(
       payload,
       pairs,
-      dto.isDefault === true
+      dto.isDefault === true,
+      mediaIds
     );
     await this.productsRepo.recomputeMinPrice(productId);
     return this.toVariantResponse(variant);
+  }
+
+  /** Validasi semua mediaId milik product yang sama lalu kembalikan daftarnya. */
+  private async resolveMediaIds(
+    productId: number,
+    mediaIds?: number[]
+  ): Promise<number[]> {
+    if (!mediaIds || mediaIds.length === 0) return [];
+    for (const mediaId of mediaIds) {
+      const media = await this.productsRepo.findMediaById(mediaId);
+      if (!media) throw ProductMediaNotFoundException({ details: { mediaId } });
+      if (media.productId !== productId)
+        throw MediaNotOwnedByProductException({
+          details: { productId, mediaId },
+        });
+    }
+    return mediaIds;
   }
 
   async list(productId: number): Promise<VariantResponseDto[]> {
@@ -176,9 +194,13 @@ export class ProductVariantsService {
     return variant;
   }
 
-  /** Validasi attributeValueIds & derive pasangan (attributeId, attributeValueId). */
+  /**
+   * Validasi attributeValueIds & derive pasangan (attributeId, attributeValueId).
+   * Attribute yang dipakai akan otomatis dideklarasikan ke product saat insert
+   * (lihat createVariant), jadi tidak perlu deklarasi terpisah lebih dulu.
+   * Tetap menolak dua value dari attribute yang sama (mis. Red & Black).
+   */
   private async resolveAttributePairs(
-    productId: number,
     attributeValueIds: number[]
   ): Promise<VariantAttributePair[]> {
     const values =
@@ -186,17 +208,10 @@ export class ProductVariantsService {
     if (values.length !== attributeValueIds.length)
       throw AttributeValueNotFoundException({ details: { attributeValueIds } });
 
-    const declared = new Set(
-      await this.productsRepo.declaredAttributeIds(productId)
-    );
     const seenAttributes = new Set<number>();
     const pairs: VariantAttributePair[] = [];
 
     for (const value of values) {
-      if (!declared.has(value.attributeId))
-        throw VariantAttributeInvalidException({
-          details: { attributeId: value.attributeId, reason: 'not_declared' },
-        });
       if (seenAttributes.has(value.attributeId))
         throw VariantAttributeInvalidException({
           details: { attributeId: value.attributeId, reason: 'duplicate' },
