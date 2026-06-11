@@ -59,4 +59,6 @@ export type ErrorCategory =
   | 'ATTRIBUTE'
   | 'OUTLET'
   | 'CART'
-  | 'ORDER';
+  | 'ORDER'
+  | 'PURCHASING'
+  | 'TRANSFER';

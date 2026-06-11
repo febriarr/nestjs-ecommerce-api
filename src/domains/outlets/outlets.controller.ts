@@ -19,7 +19,9 @@ import { OutletQueryDTO } from './dto/outlet-query.dto';
 import { OutletResponseDto } from './dto/response-outlet.dto';
 import { SetInventoryDTO } from './dto/set-inventory.dto';
 import { InventoryResponseDto } from './dto/response-inventory.dto';
+import { MovementResponseDto } from './dto/response-movement.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
+import { CursorQueryDTO } from '../../common/dto/cursor-query.dto';
 
 @Controller('outlets')
 export class OutletsController {
@@ -84,5 +86,15 @@ export class OutletsController {
     @Body() dto: SetInventoryDTO
   ): Promise<InventoryResponseDto> {
     return this.outletsService.setInventory(id, variantId, dto);
+  }
+
+  /** Jejak audit stok (ledger append-only) sebuah variant di outlet ini. */
+  @Get(':id/inventory/:variantId/movements')
+  async listMovements(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('variantId', ParseIntPipe) variantId: number,
+    @Query() query: CursorQueryDTO
+  ): Promise<WithMetadata<MovementResponseDto[]>> {
+    return this.outletsService.listMovements(id, variantId, query);
   }
 }

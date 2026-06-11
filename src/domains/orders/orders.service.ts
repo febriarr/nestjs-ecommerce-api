@@ -337,7 +337,8 @@ export class OrdersService {
           tx,
           order.outletId,
           item.variantId,
-          item.quantity
+          item.quantity,
+          { refType: 'order', refId: order.id }
         );
         if (!finalized) {
           throw OrderStockReservationFailedException({
@@ -595,7 +596,8 @@ export class OrdersService {
           tx,
           params.outletId,
           line.variantId,
-          line.quantity
+          line.quantity,
+          { refType: 'order', refId: created.id }
         );
         if (!reserved) {
           throw OrderStockReservationFailedException({
@@ -668,7 +670,8 @@ export class OrdersService {
           tx,
           order.outletId,
           item.variantId,
-          item.quantity
+          item.quantity,
+          { refType: 'order', refId: order.id }
         );
       }
       return updated;

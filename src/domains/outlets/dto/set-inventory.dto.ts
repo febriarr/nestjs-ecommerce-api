@@ -1,8 +1,30 @@
-import { IsInt, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
-/** Set stok absolut sebuah variant pada sebuah outlet (upsert). */
+/**
+ * Set stok absolut sebuah variant pada sebuah outlet (upsert).
+ * Tercatat di ledger sebagai ADJUSTMENT (delta dihitung otomatis) — untuk
+ * stok opname/koreksi; barang datang dari pembelian lewat penerimaan PO.
+ */
 export class SetInventoryDTO {
   @IsInt()
   @Min(0)
   stock: number;
+
+  /** Alasan penyesuaian — tampil di jejak audit. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  note?: string;
+
+  /** Admin pelaku (belum ada auth guard — konvensi products.createdBy). */
+  @IsOptional()
+  @IsUUID()
+  adjustedBy?: string;
 }

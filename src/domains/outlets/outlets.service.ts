@@ -10,12 +10,16 @@ import {
   InsertOutlet,
   SelectOutlet,
 } from '../../infrastructure/database/schema';
+import { MovementResponseDto } from './dto/response-movement.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 import {
   buildCursorPage,
   decodeCursor,
 } from '../../common/pagination/cursor.util';
-import { DEFAULT_PAGE_LIMIT } from '../../common/dto/cursor-query.dto';
+import {
+  CursorQueryDTO,
+  DEFAULT_PAGE_LIMIT,
+} from '../../common/dto/cursor-query.dto';
 import {
   OutletCodeConflictException,
   OutletInventoryInvalidException,
@@ -115,10 +119,11 @@ export class OutletsService {
       });
     }
 
-    await this.outletsRepository.upsertInventory(
+    await this.outletsRepository.setInventoryAudited(
       outletId,
       variantId,
-      dto.stock
+      dto.stock,
+      { note: dto.note, actorId: dto.adjustedBy }
     );
     const view = await this.outletsRepository.findInventoryView(
       outletId,
@@ -163,6 +168,46 @@ export class OutletsService {
     const { items, meta } = buildCursorPage(rows, limit, (row) => row.id);
     return {
       data: items.map((row) => this.toInventoryResponse(row)),
+      metadata: meta,
+    };
+  }
+
+  // ---------- ledger ----------
+
+  /** Timeline jejak audit stok sebuah variant di sebuah outlet. */
+  async listMovements(
+    outletId: number,
+    variantId: number,
+    query: CursorQueryDTO
+  ): Promise<WithMetadata<MovementResponseDto[]>> {
+    await this.getOutletOrThrow(outletId);
+    const limit = query.limit ?? DEFAULT_PAGE_LIMIT;
+    const rows = await this.outletsRepository.listMovements(
+      outletId,
+      variantId,
+      decodeCursor(query.cursor),
+      limit
+    );
+    const { items, meta } = buildCursorPage(rows, limit, (row) => row.id);
+    return {
+      data: items.map(
+        (row) =>
+          new MovementResponseDto({
+            id: row.id,
+            outletId: row.outletId,
+            variantId: row.variantId,
+            type: row.type,
+            stockChange: row.stockChange,
+            reservedChange: row.reservedChange,
+            stockAfter: row.stockAfter,
+            reservedAfter: row.reservedAfter,
+            refType: row.refType,
+            refId: row.refId,
+            actorId: row.actorId,
+            note: row.note,
+            createdAt: row.createdAt,
+          })
+      ),
       metadata: meta,
     };
   }

@@ -20,6 +20,9 @@ import { OutletsModule } from './domains/outlets/outlets.module';
 import { CartModule } from './domains/cart/cart.module';
 import { OrdersModule } from './domains/orders/orders.module';
 import { PaymentsModule } from './domains/payments/payments.module';
+import { SuppliersModule } from './domains/suppliers/suppliers.module';
+import { PurchaseOrdersModule } from './domains/purchase-orders/purchase-orders.module';
+import { StockTransfersModule } from './domains/stock-transfers/stock-transfers.module';
 
 @Module({
   imports: [
@@ -43,6 +46,9 @@ import { PaymentsModule } from './domains/payments/payments.module';
     CartModule,
     OrdersModule,
     PaymentsModule,
+    SuppliersModule,
+    PurchaseOrdersModule,
+    StockTransfersModule,
   ],
 })
 export class AppModule implements NestModule {

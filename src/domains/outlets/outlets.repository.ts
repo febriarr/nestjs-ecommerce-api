@@ -17,10 +17,14 @@ import {
   InsertOutlet,
   SelectOutlet,
   SelectOutletInventory,
+  SelectStockMovement,
+  StockMovementRefType,
+  StockMovementType,
   outletInventory,
   outlets,
   products,
   productVariants,
+  stockMovements,
 } from '../../infrastructure/database/schema';
 
 export interface OutletListFilter {
@@ -46,6 +50,17 @@ export interface AvailabilityRow {
   outletId: number;
   variantId: number;
   availableStock: number;
+}
+
+/**
+ * Konteks audit sebuah mutasi stok — diteruskan caller agar setiap baris
+ * ledger stock_movements bisa di-drill-down ke dokumen sumbernya.
+ */
+export interface MovementContext {
+  refType?: StockMovementRefType;
+  refId?: string;
+  actorId?: string;
+  note?: string;
 }
 
 @Injectable()
@@ -259,21 +274,54 @@ export class OutletsRepository extends BaseRepository {
       .limit(limit + 1);
   }
 
-  /** Upsert stok absolut; reservedStock tidak disentuh. */
-  async upsertInventory(
+  /**
+   * Set stok absolut (upsert) + tulis ledger ADJUSTMENT dengan delta yang
+   * dihitung dari nilai lama (dibaca FOR UPDATE — kebal race). Delta nol
+   * tidak menghasilkan baris ledger.
+   */
+  async setInventoryAudited(
     outletId: number,
     variantId: number,
-    stock: number
+    stock: number,
+    ctx: MovementContext = {}
   ): Promise<SelectOutletInventory> {
-    const [row] = await this.db
-      .insert(outletInventory)
-      .values({ outletId, variantId, stock })
-      .onConflictDoUpdate({
-        target: [outletInventory.outletId, outletInventory.variantId],
-        set: { stock, updatedAt: new Date() },
-      })
-      .returning();
-    return row;
+    return this.withTransaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(outletInventory)
+        .where(
+          and(
+            eq(outletInventory.outletId, outletId),
+            eq(outletInventory.variantId, variantId)
+          )
+        )
+        .for('update')
+        .limit(1);
+      const oldStock = existing[0]?.stock ?? 0;
+
+      const [row] = await tx
+        .insert(outletInventory)
+        .values({ outletId, variantId, stock })
+        .onConflictDoUpdate({
+          target: [outletInventory.outletId, outletInventory.variantId],
+          set: { stock, updatedAt: new Date() },
+        })
+        .returning();
+
+      const delta = stock - oldStock;
+      if (delta !== 0) {
+        await this.insertMovement(tx, {
+          outletId,
+          variantId,
+          type: 'ADJUSTMENT',
+          stockChange: delta,
+          stockAfter: row.stock,
+          reservedAfter: row.reservedStock,
+          ctx,
+        });
+      }
+      return row;
+    });
   }
 
   /** Ketersediaan (stock - reserved) untuk kombinasi outlet × variant. */
@@ -300,17 +348,21 @@ export class OutletsRepository extends BaseRepository {
       );
   }
 
-  // ---------- stock movement (tx-scoped, anti-overselling) ----------
+  // ---------- stock movement (tx-scoped, anti-overselling + ledger) ----------
+  // SEMUA mutasi outlet_inventory lewat method di bawah; setiap method menulis
+  // baris stock_movements dalam transaksi yang sama (jejak audit lengkap).
 
   /**
    * Reservasi stok secara atomic: hanya berhasil bila available >= quantity
    * (dicek dan dimutasi dalam SATU statement — bebas race antar checkout).
+   * Ledger: RESERVE (reservedChange +quantity).
    */
   async reserveStock(
     tx: DatabaseTransaction,
     outletId: number,
     variantId: number,
-    quantity: number
+    quantity: number,
+    ctx: MovementContext
   ): Promise<boolean> {
     const rows = await tx
       .update(outletInventory)
@@ -324,36 +376,83 @@ export class OutletsRepository extends BaseRepository {
           sql`${outletInventory.stock} - ${outletInventory.reservedStock} >= ${quantity}`
         )
       )
-      .returning({ id: outletInventory.id });
-    return rows.length > 0;
+      .returning({
+        stock: outletInventory.stock,
+        reservedStock: outletInventory.reservedStock,
+      });
+    if (rows.length === 0) return false;
+
+    await this.insertMovement(tx, {
+      outletId,
+      variantId,
+      type: 'RESERVE',
+      reservedChange: quantity,
+      stockAfter: rows[0].stock,
+      reservedAfter: rows[0].reservedStock,
+      ctx,
+    });
+    return true;
   }
 
-  /** Lepas reservasi (cancel/expired); di-clamp agar tidak negatif. */
+  /**
+   * Lepas reservasi (cancel/expired). Baris dikunci FOR UPDATE agar delta
+   * aktual (ter-clamp ke reserved tersisa) tercatat akurat di ledger RELEASE.
+   */
   async releaseStock(
     tx: DatabaseTransaction,
     outletId: number,
     variantId: number,
-    quantity: number
+    quantity: number,
+    ctx: MovementContext
   ): Promise<void> {
-    await tx
-      .update(outletInventory)
-      .set({
-        reservedStock: sql`greatest(${outletInventory.reservedStock} - ${quantity}, 0)`,
-      })
+    const existing = await tx
+      .select()
+      .from(outletInventory)
       .where(
         and(
           eq(outletInventory.outletId, outletId),
           eq(outletInventory.variantId, variantId)
         )
-      );
+      )
+      .for('update')
+      .limit(1);
+    if (existing.length === 0) return;
+
+    const actual = Math.min(quantity, existing[0].reservedStock);
+    if (actual === 0) return;
+
+    const [row] = await tx
+      .update(outletInventory)
+      .set({
+        reservedStock: sql`${outletInventory.reservedStock} - ${actual}`,
+      })
+      .where(eq(outletInventory.id, existing[0].id))
+      .returning({
+        stock: outletInventory.stock,
+        reservedStock: outletInventory.reservedStock,
+      });
+
+    await this.insertMovement(tx, {
+      outletId,
+      variantId,
+      type: 'RELEASE',
+      reservedChange: -actual,
+      stockAfter: row.stock,
+      reservedAfter: row.reservedStock,
+      ctx,
+    });
   }
 
-  /** Finalisasi setelah pembayaran: kurangi stock & lepas reservasi sekaligus. */
+  /**
+   * Finalisasi setelah pembayaran: kurangi stock & lepas reservasi sekaligus.
+   * Ledger: SALE (stockChange -quantity, reservedChange -quantity).
+   */
   async finalizeStock(
     tx: DatabaseTransaction,
     outletId: number,
     variantId: number,
-    quantity: number
+    quantity: number,
+    ctx: MovementContext
   ): Promise<boolean> {
     const rows = await tx
       .update(outletInventory)
@@ -369,7 +468,151 @@ export class OutletsRepository extends BaseRepository {
           sql`${outletInventory.reservedStock} >= ${quantity}`
         )
       )
-      .returning({ id: outletInventory.id });
-    return rows.length > 0;
+      .returning({
+        stock: outletInventory.stock,
+        reservedStock: outletInventory.reservedStock,
+      });
+    if (rows.length === 0) return false;
+
+    await this.insertMovement(tx, {
+      outletId,
+      variantId,
+      type: 'SALE',
+      stockChange: -quantity,
+      reservedChange: -quantity,
+      stockAfter: rows[0].stock,
+      reservedAfter: rows[0].reservedStock,
+      ctx,
+    });
+    return true;
+  }
+
+  /**
+   * Tambah stok fisik (upsert) — penerimaan barang (PURCHASE_RECEIPT) atau
+   * transfer masuk (TRANSFER_IN).
+   */
+  async addStock(
+    tx: DatabaseTransaction,
+    outletId: number,
+    variantId: number,
+    quantity: number,
+    type: Extract<StockMovementType, 'PURCHASE_RECEIPT' | 'TRANSFER_IN'>,
+    ctx: MovementContext
+  ): Promise<void> {
+    const [row] = await tx
+      .insert(outletInventory)
+      .values({ outletId, variantId, stock: quantity })
+      .onConflictDoUpdate({
+        target: [outletInventory.outletId, outletInventory.variantId],
+        set: {
+          stock: sql`${outletInventory.stock} + ${quantity}`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({
+        stock: outletInventory.stock,
+        reservedStock: outletInventory.reservedStock,
+      });
+
+    await this.insertMovement(tx, {
+      outletId,
+      variantId,
+      type,
+      stockChange: quantity,
+      stockAfter: row.stock,
+      reservedAfter: row.reservedStock,
+      ctx,
+    });
+  }
+
+  /**
+   * Kurangi stok fisik untuk transfer keluar — hanya berhasil bila available
+   * (stock - reserved) mencukupi; atomic seperti reserveStock.
+   */
+  async deductStock(
+    tx: DatabaseTransaction,
+    outletId: number,
+    variantId: number,
+    quantity: number,
+    ctx: MovementContext
+  ): Promise<boolean> {
+    const rows = await tx
+      .update(outletInventory)
+      .set({ stock: sql`${outletInventory.stock} - ${quantity}` })
+      .where(
+        and(
+          eq(outletInventory.outletId, outletId),
+          eq(outletInventory.variantId, variantId),
+          sql`${outletInventory.stock} - ${outletInventory.reservedStock} >= ${quantity}`
+        )
+      )
+      .returning({
+        stock: outletInventory.stock,
+        reservedStock: outletInventory.reservedStock,
+      });
+    if (rows.length === 0) return false;
+
+    await this.insertMovement(tx, {
+      outletId,
+      variantId,
+      type: 'TRANSFER_OUT',
+      stockChange: -quantity,
+      stockAfter: rows[0].stock,
+      reservedAfter: rows[0].reservedStock,
+      ctx,
+    });
+    return true;
+  }
+
+  // ---------- ledger ----------
+
+  /** Timeline ledger sebuah (outlet, variant), keyset desc id. */
+  async listMovements(
+    outletId: number,
+    variantId: number,
+    cursorId: number | null,
+    limit: number
+  ): Promise<SelectStockMovement[]> {
+    const conditions = [
+      eq(stockMovements.outletId, outletId),
+      eq(stockMovements.variantId, variantId),
+    ];
+    if (cursorId !== null) conditions.push(lt(stockMovements.id, cursorId));
+
+    return this.db
+      .select()
+      .from(stockMovements)
+      .where(and(...conditions))
+      .orderBy(desc(stockMovements.id))
+      .limit(limit + 1);
+  }
+
+  /** Satu-satunya penulis baris ledger — selalu dalam transaksi mutasi. */
+  private async insertMovement(
+    tx: DatabaseTransaction,
+    params: {
+      outletId: number;
+      variantId: number;
+      type: StockMovementType;
+      stockChange?: number;
+      reservedChange?: number;
+      stockAfter: number;
+      reservedAfter: number;
+      ctx: MovementContext;
+    }
+  ): Promise<void> {
+    await tx.insert(stockMovements).values({
+      outletId: params.outletId,
+      variantId: params.variantId,
+      type: params.type,
+      stockChange: params.stockChange ?? 0,
+      reservedChange: params.reservedChange ?? 0,
+      stockAfter: params.stockAfter,
+      reservedAfter: params.reservedAfter,
+      refType: params.ctx.refType ?? null,
+      refId: params.ctx.refId ?? null,
+      actorId: params.ctx.actorId ?? null,
+      note: params.ctx.note ?? null,
+    });
   }
 }

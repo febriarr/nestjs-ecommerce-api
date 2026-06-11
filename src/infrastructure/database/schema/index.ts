@@ -21,6 +21,14 @@ export * from './product-variants.entity';
 export * from './products.relations';
 //outlets
 export * from './outlets.entity';
+//stock movements (ledger audit)
+export * from './stock-movements.entity';
+//suppliers
+export * from './suppliers.entity';
+//purchase orders + goods receipts
+export * from './purchase-orders.entity';
+//stock transfers
+export * from './stock-transfers.entity';
 //carts
 export * from './carts.entity';
 //orders
