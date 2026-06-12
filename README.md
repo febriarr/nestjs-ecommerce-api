@@ -21,7 +21,10 @@ PostgreSQL**, dengan Redis (BullMQ) untuk job asinkron.
 
 | Dokumen | Isi |
 |---|---|
-| [`docs/openapi.yaml`](docs/openapi.yaml) | **Kontrak API lengkap** (OpenAPI 3.0, multi-file) — 78 path / 17 domain, termasuk konvensi envelope response, error code, role, pagination, dan idempotensi |
+| [`docs/PRD.md`](docs/PRD.md) | **PRD** — latar belakang, persona, goals, kebutuhan fungsional per modul, business rules, roadmap |
+| [`docs/ERD.md`](docs/ERD.md) | **ERD** — diagram relasi entitas (Mermaid) per bounded context + catatan integritas |
+| [`docs/BUSINESS-FLOW.md`](docs/BUSINESS-FLOW.md) | **Flow bisnis end-to-end** — pengadaan → penjualan → pembayaran → refund, state machine & sequence diagram |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | **Kontrak API lengkap** (OpenAPI 3.0, multi-file) — termasuk konvensi envelope response, error code, role, pagination, dan idempotensi |
 | [`docs/README.md`](docs/README.md) | Struktur spec multi-file + cara menambah endpoint baru |
 | [`.env.example`](.env.example) | Seluruh variabel environment beserta penjelasannya |
 | [`drizzle/migrations/`](drizzle/migrations) | Riwayat migrasi database (drizzle-kit) |
