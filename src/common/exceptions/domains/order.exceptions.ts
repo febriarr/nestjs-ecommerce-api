@@ -44,6 +44,22 @@ export const OrderInvalidStatusTransitionException = defineAppError({
   status: HttpStatus.UNPROCESSABLE_ENTITY,
 });
 
+export const OrderIdempotencyKeyMissingException = defineAppError({
+  code: ERROR_CODES.IDEMPOTENCY_KEY_MISSING,
+  category: 'ORDER',
+  message:
+    'Header Idempotency-Key wajib untuk checkout (cegah order ganda saat retry).',
+  status: HttpStatus.BAD_REQUEST,
+});
+
+export const OrderIdempotencyConflictException = defineAppError({
+  code: ERROR_CODES.IDEMPOTENCY_CONFLICT,
+  category: 'ORDER',
+  message:
+    'Request dengan Idempotency-Key yang sama sedang diproses. Tunggu sebentar lalu coba lagi.',
+  status: HttpStatus.CONFLICT,
+});
+
 export const OrderStockReservationFailedException = defineAppError({
   code: ERROR_CODES.ORDER_STOCK_RESERVATION_FAILED,
   category: 'ORDER',

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -10,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { OrderIdempotencyKeyMissingException } from '../../common/exceptions/domains/order.exceptions';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { SelectUser } from '../../infrastructure/database/schema';
@@ -51,14 +53,23 @@ export class OrdersController {
     return this.ordersService.findByIdFor(user, id);
   }
 
-  /** Checkout ONLINE dari cart user login. */
+  /**
+   * Checkout ONLINE dari cart user login. Header `Idempotency-Key` wajib
+   * (string unik per percobaan checkout, mis. uuid dari FE) — retry/double
+   * click dengan key sama mengembalikan order yang sama, bukan order baru.
+   */
   @Post('checkout')
   @HttpCode(HttpStatus.CREATED)
   async checkout(
     @CurrentUser() user: SelectUser,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body() dto: CheckoutDTO
   ): Promise<OrderResponseDto> {
-    return this.ordersService.checkout(user.id, dto);
+    const key = idempotencyKey?.trim();
+    if (!key || key.length > 100) {
+      throw OrderIdempotencyKeyMissingException();
+    }
+    return this.ordersService.checkout(user.id, dto, key);
   }
 
   /** Order OFFLINE (POS) — hanya kasir/staf (admin). */

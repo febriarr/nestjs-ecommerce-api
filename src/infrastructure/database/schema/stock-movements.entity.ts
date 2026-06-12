@@ -21,6 +21,7 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
   'RELEASE',
   'TRANSFER_IN',
   'TRANSFER_OUT',
+  'REFUND_RESTOCK',
 ]);
 export type StockMovementType =
   (typeof stockMovementTypeEnum.enumValues)[number];

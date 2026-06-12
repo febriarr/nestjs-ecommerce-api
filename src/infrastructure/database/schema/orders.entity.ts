@@ -27,6 +27,7 @@ export const orderStatusEnum = pgEnum('order_status', [
   'PAID',
   'CANCELLED',
   'EXPIRED',
+  'REFUNDED',
 ]);
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
 
@@ -91,6 +92,10 @@ export const orders = pgTable(
     expiresAt: timestamp('expires_at', { mode: 'date', withTimezone: true }),
     paidAt: timestamp('paid_at', { mode: 'date', withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', {
+      mode: 'date',
+      withTimezone: true,
+    }),
+    refundedAt: timestamp('refunded_at', {
       mode: 'date',
       withTimezone: true,
     }),

@@ -33,5 +33,6 @@ export * from './stock-transfers.entity';
 export * from './carts.entity';
 //orders
 export * from './orders.entity';
+export * from './idempotency-keys.entity';
 //payments
 export * from './payments.entity';

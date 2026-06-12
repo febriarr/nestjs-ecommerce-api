@@ -43,6 +43,13 @@
       "when": 1781212330465,
       "tag": "0005_clever_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781238879076,
+      "tag": "0006_silky_lockheed",
+      "breakpoints": true
     }
   ]
 }

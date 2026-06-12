@@ -8,9 +8,11 @@ import {
   InsertOrderItem,
   OrderStatus,
   ProductStatus,
+  SelectIdempotencyKey,
   SelectOrder,
   SelectOrderItem,
   VariantStatus,
+  idempotencyKeys,
   orderItems,
   orders,
   outlets,
@@ -130,6 +132,60 @@ export class OrdersRepository extends BaseRepository {
       .where(eq(outlets.id, outletId))
       .limit(1);
     return rows[0]?.name ?? null;
+  }
+
+  // ---------- idempotency (scope 'checkout') ----------
+
+  /**
+   * Klaim key idempotensi: hanya satu request yang berhasil insert
+   * (ON CONFLICT DO NOTHING) — yang kalah membaca baris pemenang.
+   */
+  async claimIdempotencyKey(
+    userId: string,
+    key: string
+  ): Promise<SelectIdempotencyKey | null> {
+    const rows = await this.db
+      .insert(idempotencyKeys)
+      .values({ userId, scope: 'checkout', key })
+      .onConflictDoNothing({
+        target: [
+          idempotencyKeys.userId,
+          idempotencyKeys.scope,
+          idempotencyKeys.key,
+        ],
+      })
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async findIdempotencyKey(
+    userId: string,
+    key: string
+  ): Promise<SelectIdempotencyKey | null> {
+    const rows = await this.db
+      .select()
+      .from(idempotencyKeys)
+      .where(
+        and(
+          eq(idempotencyKeys.userId, userId),
+          eq(idempotencyKeys.scope, 'checkout'),
+          eq(idempotencyKeys.key, key)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async attachOrderToKey(keyId: number, orderId: string): Promise<void> {
+    await this.db
+      .update(idempotencyKeys)
+      .set({ orderId })
+      .where(eq(idempotencyKeys.id, keyId));
+  }
+
+  /** Lepas klaim saat proses gagal agar retry dengan key sama bisa jalan. */
+  async releaseIdempotencyKey(keyId: number): Promise<void> {
+    await this.db.delete(idempotencyKeys).where(eq(idempotencyKeys.id, keyId));
   }
 
   // ---------- lintas-entity (self-contained, pola ProductsRepository) ----------

@@ -488,15 +488,18 @@ export class OutletsRepository extends BaseRepository {
   }
 
   /**
-   * Tambah stok fisik (upsert) — penerimaan barang (PURCHASE_RECEIPT) atau
-   * transfer masuk (TRANSFER_IN).
+   * Tambah stok fisik (upsert) — penerimaan barang (PURCHASE_RECEIPT),
+   * transfer masuk (TRANSFER_IN), atau retur refund (REFUND_RESTOCK).
    */
   async addStock(
     tx: DatabaseTransaction,
     outletId: number,
     variantId: number,
     quantity: number,
-    type: Extract<StockMovementType, 'PURCHASE_RECEIPT' | 'TRANSFER_IN'>,
+    type: Extract<
+      StockMovementType,
+      'PURCHASE_RECEIPT' | 'TRANSFER_IN' | 'REFUND_RESTOCK'
+    >,
     ctx: MovementContext
   ): Promise<void> {
     const [row] = await tx

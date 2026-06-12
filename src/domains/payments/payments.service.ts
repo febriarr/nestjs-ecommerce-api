@@ -9,7 +9,9 @@ import type {
 } from './payment-gateway.interface';
 import { InitiatePaymentDTO } from './dto/initiate-payment.dto';
 import { PaymentWebhookDTO } from './dto/payment-webhook.dto';
+import { RefundOrderDTO } from './dto/refund-order.dto';
 import { PaymentResponseDto } from './dto/response-payment.dto';
+import { OrderResponseDto } from '../orders/dto/response-order.dto';
 import {
   SelectPayment,
   SelectUser,
@@ -156,6 +158,89 @@ export class PaymentsService {
 
     this.logger.log(`Pembayaran order ${order.orderNumber} sukses (webhook)`);
     return this.toPaymentResponse(succeeded, null);
+  }
+
+  /**
+   * Pembayaran TUNAI di kasir (POS): order PENDING langsung PAID (finalisasi
+   * stok + invoice → pipeline PDF/email), lalu dicatat sebagai payment
+   * provider 'cash'. Attempt gateway yang masih PENDING ditandai FAILED
+   * (dibatalkan — dibayar tunai). Idempotent bila sudah dibayar.
+   */
+  async payCash(orderId: string, actorId: string): Promise<PaymentResponseDto> {
+    const order = await this.ordersRepository.findById(orderId);
+    if (!order) {
+      throw OrderNotFoundException({ details: { id: orderId } });
+    }
+
+    const succeeded = await this.paymentsRepository.findSucceededByOrder(
+      order.id
+    );
+    if (succeeded) {
+      return this.toPaymentResponse(succeeded, null);
+    }
+    if (order.status !== 'PENDING') {
+      throw PaymentOrderNotPayableException({
+        details: { orderId: order.id, status: order.status },
+      });
+    }
+
+    const pending = await this.paymentsRepository.findPendingByOrder(order.id);
+    if (pending) {
+      await this.paymentsRepository.update(pending.id, {
+        status: 'FAILED',
+        failureReason: 'Dibatalkan — order dibayar tunai di kasir.',
+      });
+    }
+
+    // Order dulu (stok + invoice, idempotent), baru catat payment — retry
+    // payCash setelah gagal di langkah kedua menyembuhkan diri sendiri.
+    await this.ordersService.markPaid(order.id);
+    const payment = await this.paymentsRepository.insert({
+      orderId: order.id,
+      provider: 'cash',
+      externalId: null,
+      paymentCode: null,
+      amount: order.total,
+      status: 'SUCCEEDED',
+      paidAt: new Date(),
+    });
+
+    this.logger.log(
+      `Order ${order.orderNumber} dibayar tunai (kasir ${actorId})`
+    );
+    return this.toPaymentResponse(payment, null);
+  }
+
+  /**
+   * Refund penuh order PAID: order → REFUNDED (+ restock opsional via
+   * ledger REFUND_RESTOCK), payment SUCCEEDED ditandai REFUNDED.
+   */
+  async refund(
+    dto: RefundOrderDTO,
+    actorId: string
+  ): Promise<OrderResponseDto> {
+    const order = await this.ordersRepository.findById(dto.orderId);
+    if (!order) {
+      throw OrderNotFoundException({ details: { id: dto.orderId } });
+    }
+
+    const refunded = await this.ordersService.markRefunded(order.id, {
+      restock: dto.restock ?? true,
+      reason: dto.reason,
+      actorId,
+    });
+
+    const succeeded = await this.paymentsRepository.findSucceededByOrder(
+      order.id
+    );
+    if (succeeded) {
+      await this.paymentsRepository.update(succeeded.id, {
+        status: 'REFUNDED',
+      });
+    }
+
+    this.logger.log(`Order ${order.orderNumber} di-refund (oleh ${actorId})`);
+    return refunded;
   }
 
   private toPaymentResponse(

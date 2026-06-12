@@ -18,6 +18,7 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'SUCCEEDED',
   'FAILED',
   'EXPIRED',
+  'REFUNDED',
 ]);
 export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
 

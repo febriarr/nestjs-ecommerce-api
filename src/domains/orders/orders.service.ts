@@ -41,6 +41,7 @@ import { DEFAULT_PAGE_LIMIT } from '../../common/dto/cursor-query.dto';
 import { CartEmptyException } from '../../common/exceptions/domains/cart.exceptions';
 import {
   OrderContactNotFoundException,
+  OrderIdempotencyConflictException,
   OrderInvalidStatusTransitionException,
   OrderNotFoundException,
   OrderOutletNotEligibleException,
@@ -90,7 +91,48 @@ export class OrdersService {
    * pilih outlet (auto/override), RESERVASI stok dalam transaksi (anti
    * overselling), buat invoice terkait, lalu jadwalkan auto-expire.
    */
-  async checkout(userId: string, dto: CheckoutDTO): Promise<OrderResponseDto> {
+  async checkout(
+    userId: string,
+    dto: CheckoutDTO,
+    idempotencyKey: string
+  ): Promise<OrderResponseDto> {
+    // Idempotensi: klaim key dulu — replay mengembalikan order yang sama,
+    // request kembar yang masih diproses ditolak 409 (anti order ganda).
+    const claimed = await this.ordersRepository.claimIdempotencyKey(
+      userId,
+      idempotencyKey
+    );
+    if (!claimed) {
+      const existing = await this.ordersRepository.findIdempotencyKey(
+        userId,
+        idempotencyKey
+      );
+      if (existing?.orderId) {
+        return this.toOrderResponse(
+          await this.getOrderOrThrow(existing.orderId)
+        );
+      }
+      throw OrderIdempotencyConflictException({
+        details: { idempotencyKey },
+      });
+    }
+
+    try {
+      const order = await this.processCheckout(userId, dto);
+      await this.ordersRepository.attachOrderToKey(claimed.id, order.id);
+      return this.toOrderResponse(order);
+    } catch (error) {
+      // Gagal → lepas klaim agar retry dengan key sama tidak terkunci.
+      await this.ordersRepository.releaseIdempotencyKey(claimed.id);
+      throw error;
+    }
+  }
+
+  /** Inti checkout (tanpa idempotensi) — mengembalikan entity order. */
+  private async processCheckout(
+    userId: string,
+    dto: CheckoutDTO
+  ): Promise<SelectOrder> {
     const customer = await this.ordersRepository.customerById(userId);
     if (!customer) {
       throw UserNotFoundException({ details: { userId } });
@@ -139,7 +181,7 @@ export class OrdersService {
 
     await this.cartRepository.clearItems(cart.id);
 
-    return this.toOrderResponse(order);
+    return order;
   }
 
   // ---------- order OFFLINE (POS) ----------
@@ -395,6 +437,68 @@ export class OrdersService {
         status: 'PAID',
       });
     }
+    return this.toOrderResponse(updated);
+  }
+
+  /**
+   * Refund penuh order PAID (dipanggil PaymentsService): PAID → REFUNDED
+   * dengan guard kondisional atomic; bila `restock`, seluruh item kembali
+   * ke stok outlet (ledger REFUND_RESTOCK, ber-aktor). Pengembalian dananya
+   * sendiri di luar sistem (transfer/tunai). Invoice sengaja TETAP `PAID` —
+   * dokumen tagihan historis; jejak refund ada di order + payment + ledger.
+   * Idempotent untuk order yang sudah REFUNDED.
+   */
+  async markRefunded(
+    id: string,
+    opts: { restock: boolean; reason?: string; actorId: string }
+  ): Promise<OrderResponseDto> {
+    const order = await this.getOrderOrThrow(id);
+    if (order.status === 'REFUNDED') {
+      return this.toOrderResponse(order);
+    }
+    if (order.status !== 'PAID') {
+      throw OrderInvalidStatusTransitionException({
+        details: { id, from: order.status, to: 'REFUNDED' },
+      });
+    }
+
+    const items = await this.ordersRepository.listItems(id);
+    const updated = await this.ordersRepository.withTransaction(async (tx) => {
+      const row = await this.ordersRepository.updateStatusIf(tx, id, 'PAID', {
+        status: 'REFUNDED',
+        refundedAt: new Date(),
+      });
+      if (!row) return null;
+
+      if (opts.restock) {
+        for (const item of items) {
+          await this.outletsRepository.addStock(
+            tx,
+            order.outletId,
+            item.variantId,
+            item.quantity,
+            'REFUND_RESTOCK',
+            {
+              refType: 'order',
+              refId: id,
+              actorId: opts.actorId,
+              note: opts.reason,
+            }
+          );
+        }
+      }
+      return row;
+    });
+
+    if (!updated) {
+      const current = await this.getOrderOrThrow(id);
+      if (current.status === 'REFUNDED') return this.toOrderResponse(current);
+      throw OrderInvalidStatusTransitionException({
+        details: { id, from: current.status, to: 'REFUNDED' },
+      });
+    }
+
+    this.logger.log(`Order ${updated.orderNumber} di-refund`);
     return this.toOrderResponse(updated);
   }
 

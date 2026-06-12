@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService, ClientMeta } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
@@ -24,6 +25,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -33,7 +35,9 @@ export class AuthController {
     return this.authService.register(dto, this.clientMeta(request));
   }
 
+  /** Ketat: tameng brute-force kredensial. */
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -45,6 +49,7 @@ export class AuthController {
 
   /** Login Google — body `credential` dari Google Identity Services (GIS). */
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('google')
   @HttpCode(HttpStatus.OK)
   async loginWithGoogle(

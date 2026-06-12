@@ -1,5 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { UsersModule } from './domains/users/users.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -27,6 +29,11 @@ import { StockTransfersModule } from './domains/stock-transfers/stock-transfers.
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Rate limit default seluruh API: 100 request/menit per IP (tuning knob).
+    // Endpoint sensitif (login/register/google, webhook) lebih ketat via
+    // @Throttle di controller; pelanggaran → 429 RATE_LIMIT_EXCEEDED
+    // (sudah ditangani AppExceptionFilter).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     DatabaseModule,
     UsersModule,
     MailModule,
@@ -49,6 +56,11 @@ import { StockTransfersModule } from './domains/stock-transfers/stock-transfers.
     SuppliersModule,
     PurchaseOrdersModule,
     StockTransfersModule,
+  ],
+  providers: [
+    // Rate limiting berlaku untuk SEMUA route (termasuk @Public) — guard
+    // auth/roles terdaftar di AuthModule.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule implements NestModule {
