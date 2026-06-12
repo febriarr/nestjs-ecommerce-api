@@ -1,0 +1,22 @@
+events-product-view:
+  post:
+    tags: [Events]
+    summary: Catat view halaman produk (publik, throttled 120/menit)
+    description: >-
+      Dipanggil FE setiap halaman produk dibuka — anonim & ringan; menjadi
+      sumber metrik GET /analytics/products/conversion.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [productId]
+            properties:
+              productId: { type: integer }
+              variantId: { type: integer }
+    responses:
+      '201': { description: Tercatat }
+      default:
+        $ref: '../components/responses.yaml#/Error'

@@ -36,3 +36,5 @@ export * from './orders.entity';
 export * from './idempotency-keys.entity';
 //payments
 export * from './payments.entity';
+//analytics
+export * from './product-views.entity';

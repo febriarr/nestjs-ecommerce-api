@@ -44,6 +44,10 @@ tags:
 - name: Suppliers
 - name: Purchase Orders
 - name: Stock Transfers
+- name: Analytics
+  description: Metrik dashboard (read-only, admin)
+- name: Events
+  description: Event tracking ringan dari storefront
 paths:
   /auth/register:
     $ref: ./paths/auth.yaml#/auth-register
@@ -201,6 +205,22 @@ paths:
     $ref: ./paths/stock-transfers.yaml#/stock-transfers-id-receive
   /stock-transfers/{id}/cancel:
     $ref: ./paths/stock-transfers.yaml#/stock-transfers-id-cancel
+  /analytics/sales/summary:
+    $ref: ./paths/analytics.yaml#/analytics-sales-summary
+  /analytics/sales/series:
+    $ref: ./paths/analytics.yaml#/analytics-sales-series
+  /analytics/sales/by-category:
+    $ref: ./paths/analytics.yaml#/analytics-sales-by-category
+  /analytics/products/best-sellers:
+    $ref: ./paths/analytics.yaml#/analytics-products-best-sellers
+  /analytics/products/slow-moving:
+    $ref: ./paths/analytics.yaml#/analytics-products-slow-moving
+  /analytics/products/conversion:
+    $ref: ./paths/analytics.yaml#/analytics-products-conversion
+  /analytics/inventory/alerts:
+    $ref: ./paths/analytics.yaml#/analytics-inventory-alerts
+  /events/product-view:
+    $ref: ./paths/events.yaml#/events-product-view
 components:
   securitySchemes:
     bearerAuth:

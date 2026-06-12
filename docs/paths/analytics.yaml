@@ -1,0 +1,178 @@
+analytics-sales-summary:
+  get:
+    tags: [Analytics]
+    summary: Ringkasan penjualan + growth MoM/YoY (admin)
+    description: >-
+      Revenue = orders.total (termasuk ongkir) basis paidAt, status
+      PAID/REFUNDED. Pembanding: periode tepat sebelumnya berdurasi sama
+      (growthVsPrevious) dan periode sama tahun lalu (growthVsLastYear).
+      Refund rate = refunded/paid; cancellation rate =
+      (cancelled+expired)/order dibuat. Default rentang 30 hari terakhir.
+    parameters:
+      - $ref: '../components/parameters.yaml#/From'
+      - $ref: '../components/parameters.yaml#/To'
+    responses:
+      '200':
+        description: Ringkasan
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/SalesSummary'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-sales-series:
+  get:
+    tags: [Analytics]
+    summary: Time series revenue/order/AOV per hari|minggu|bulan (admin)
+    description: Bucket date_trunc pada timezone ANALYTICS_TIMEZONE (default Asia/Jakarta).
+    parameters:
+      - $ref: '../components/parameters.yaml#/From'
+      - $ref: '../components/parameters.yaml#/To'
+      - name: interval
+        in: query
+        schema: { type: string, enum: [day, week, month], default: day }
+    responses:
+      '200':
+        description: Series
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/SalesSeries'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-sales-by-category:
+  get:
+    tags: [Analytics]
+    summary: Revenue & qty per kategori (admin)
+    description: Memakai order_items.lineTotal (pasca-diskon, tanpa ongkir).
+    parameters:
+      - $ref: '../components/parameters.yaml#/From'
+      - $ref: '../components/parameters.yaml#/To'
+    responses:
+      '200':
+        description: Per kategori
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/SalesByCategory'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-products-best-sellers:
+  get:
+    tags: [Analytics]
+    summary: Best seller per variant — by quantity atau revenue (admin)
+    parameters:
+      - $ref: '../components/parameters.yaml#/From'
+      - $ref: '../components/parameters.yaml#/To'
+      - name: limit
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      - name: sort
+        in: query
+        schema: { type: string, enum: [quantity, revenue], default: quantity }
+    responses:
+      '200':
+        description: Best sellers
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/BestSellers'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-products-slow-moving:
+  get:
+    tags: [Analytics]
+    summary: Slow-moving/dead stock — stok > 0 tanpa penjualan ≥ N hari (admin)
+    description: lastSoldAt null = belum pernah terjual (dead stock). Terurut nilai stok tertahan terbesar.
+    parameters:
+      - name: days
+        in: query
+        schema: { type: integer, minimum: 7, maximum: 365, default: 60 }
+      - name: limit
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    responses:
+      '200':
+        description: Slow-moving stock
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/SlowMoving'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-products-conversion:
+  get:
+    tags: [Analytics]
+    summary: Views vs purchases per produk (admin)
+    description: >-
+      Sumber views: POST /events/product-view. conversionPct = purchased /
+      views * 100 (null bila views 0). Terurut views terbanyak.
+    parameters:
+      - $ref: '../components/parameters.yaml#/From'
+      - $ref: '../components/parameters.yaml#/To'
+      - name: limit
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    responses:
+      '200':
+        description: Konversi per produk
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/ProductConversion'
+      default:
+        $ref: '../components/responses.yaml#/Error'
+
+analytics-inventory-alerts:
+  get:
+    tags: [Analytics]
+    summary: Alert stok — low stock (≤ threshold) & out of stock per outlet (admin)
+    parameters:
+      - name: threshold
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 1000, default: 5 }
+      - name: outletId
+        in: query
+        schema: { type: integer }
+    responses:
+      '200':
+        description: Alert stok
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok: { type: boolean }
+                data:
+                  $ref: '../components/schemas/analytics.yaml#/StockAlerts'
+      default:
+        $ref: '../components/responses.yaml#/Error'

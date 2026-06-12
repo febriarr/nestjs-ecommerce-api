@@ -25,6 +25,7 @@ import { PaymentsModule } from './domains/payments/payments.module';
 import { SuppliersModule } from './domains/suppliers/suppliers.module';
 import { PurchaseOrdersModule } from './domains/purchase-orders/purchase-orders.module';
 import { StockTransfersModule } from './domains/stock-transfers/stock-transfers.module';
+import { AnalyticsModule } from './domains/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { StockTransfersModule } from './domains/stock-transfers/stock-transfers.
     SuppliersModule,
     PurchaseOrdersModule,
     StockTransfersModule,
+    AnalyticsModule,
   ],
   providers: [
     // Rate limiting berlaku untuk SEMUA route (termasuk @Public) — guard

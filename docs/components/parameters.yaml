@@ -78,3 +78,17 @@ Slug:
   required: true
   schema:
     type: string
+From:
+  name: from
+  in: query
+  schema:
+    type: string
+    format: date-time
+  description: Awal rentang (default 30 hari sebelum `to`)
+To:
+  name: to
+  in: query
+  schema:
+    type: string
+    format: date-time
+  description: Akhir rentang, eksklusif (default sekarang)

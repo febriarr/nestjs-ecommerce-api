@@ -1,0 +1,146 @@
+DateRangeEcho:
+  type: object
+  properties:
+    from: { type: string, format: date-time }
+    to: { type: string, format: date-time, description: eksklusif }
+
+PeriodTotals:
+  type: object
+  properties:
+    revenue: { type: integer, description: Rupiah penuh (termasuk ongkir) }
+    orders: { type: integer }
+    aov: { type: integer, description: Average Order Value = revenue / orders }
+
+GrowthPct:
+  type: object
+  description: Persen perubahan; null bila pembanding 0 (FE tampilkan "—").
+  properties:
+    revenuePct: { type: number, nullable: true }
+    ordersPct: { type: number, nullable: true }
+    aovPct: { type: number, nullable: true }
+
+SalesSummary:
+  type: object
+  properties:
+    range: { $ref: '#/DateRangeEcho' }
+    current: { $ref: '#/PeriodTotals' }
+    previousPeriod: { $ref: '#/PeriodTotals' }
+    growthVsPrevious: { $ref: '#/GrowthPct' }
+    lastYearPeriod: { $ref: '#/PeriodTotals' }
+    growthVsLastYear: { $ref: '#/GrowthPct' }
+    refund:
+      type: object
+      properties:
+        count: { type: integer }
+        amount: { type: integer }
+        ratePct: { type: number, description: refunded / paid * 100 }
+    cancellation:
+      type: object
+      properties:
+        created: { type: integer }
+        cancelled: { type: integer }
+        expired: { type: integer }
+        ratePct: { type: number, description: (cancelled+expired) / created * 100 }
+
+SalesSeries:
+  type: object
+  properties:
+    range: { $ref: '#/DateRangeEcho' }
+    interval: { type: string, enum: [day, week, month] }
+    points:
+      type: array
+      items:
+        type: object
+        properties:
+          bucket: { type: string, example: '2026-06-01', description: awal bucket (timezone analytics) }
+          revenue: { type: integer }
+          orders: { type: integer }
+          aov: { type: integer }
+
+SalesByCategory:
+  type: object
+  properties:
+    range: { $ref: '#/DateRangeEcho' }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          categoryId: { type: string, format: uuid }
+          categoryName: { type: string }
+          quantity: { type: integer }
+          revenue: { type: integer, description: lineTotal (tanpa ongkir) }
+
+BestSellers:
+  type: object
+  properties:
+    range: { $ref: '#/DateRangeEcho' }
+    sort: { type: string, enum: [quantity, revenue] }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          variantId: { type: integer }
+          productId: { type: integer }
+          productName: { type: string }
+          variantName: { type: string, nullable: true }
+          skuCode: { type: string }
+          quantity: { type: integer }
+          revenue: { type: integer }
+
+SlowMoving:
+  type: object
+  properties:
+    days: { type: integer }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          variantId: { type: integer }
+          productId: { type: integer }
+          productName: { type: string }
+          variantName: { type: string, nullable: true }
+          skuCode: { type: string }
+          availableStock: { type: integer, description: lintas outlet }
+          stockValue: { type: integer, description: availableStock × harga jual }
+          lastSoldAt: { type: string, format: date-time, nullable: true, description: null = dead stock }
+
+StockAlerts:
+  type: object
+  properties:
+    threshold: { type: integer }
+    outOfStock:
+      type: array
+      items: { $ref: '#/StockAlertRow' }
+    lowStock:
+      type: array
+      items: { $ref: '#/StockAlertRow' }
+
+StockAlertRow:
+  type: object
+  properties:
+    outletId: { type: integer }
+    outletName: { type: string }
+    variantId: { type: integer }
+    productId: { type: integer }
+    productName: { type: string }
+    variantName: { type: string, nullable: true }
+    skuCode: { type: string }
+    availableStock: { type: integer }
+
+ProductConversion:
+  type: object
+  properties:
+    range: { $ref: '#/DateRangeEcho' }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          productId: { type: integer }
+          productName: { type: string }
+          views: { type: integer }
+          purchased: { type: integer, description: qty terjual (paid) }
+          conversionPct: { type: number, nullable: true, description: purchased / views * 100 }
