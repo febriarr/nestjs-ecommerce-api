@@ -137,7 +137,8 @@ melalui satu pintu yang tervalidasi dan ter-audit.
 
 - **Keamanan**: bcrypt cost 12; token sesi di-hash; HMAC webhook timing-safe; CORS origin
   eksplisit + credentials; anti enumerasi email pada login; cookie httpOnly+secure+lax.
-- **Konsistensi API**: envelope `{ok,data[,metadata]}`; error terstruktur ber-kode;
+- **Konsistensi API**: base path ber-versi `/api/v1` (URI versioning — v2 dapat hidup
+  berdampingan per-endpoint); envelope `{ok,data[,metadata]}`; error terstruktur ber-kode;
   pagination cursor keyset tanpa count; validasi DTO class-validator (whitelist + forbid).
 - **Skala sasaran**: ratusan order/hari, 2–5 outlet, puluhan ribu SKU — agregasi analitik
   on-the-fly cukup; jalur scaling (materialized view, partisi ledger/views) tanpa ubah API.

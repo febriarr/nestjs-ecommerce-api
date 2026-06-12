@@ -59,7 +59,8 @@ pnpm db:migrate              # DB kosong / mengikuti riwayat migrasi
 pnpm start:dev
 ```
 
-API berjalan di `http://localhost:3000` (atau `PORT` di `.env`).
+API berjalan di **`http://localhost:3000/api/v1`** (URI versioning; `PORT` bisa
+diubah di `.env`). Contoh: `GET http://localhost:3000/api/v1/products`.
 
 ## Skrip
 
@@ -90,6 +91,9 @@ src/
 
 Konvensi penting (detail lengkap di `docs/openapi.yaml` → `info.description`):
 
+- **Versioning** — semua route di `/api/v1/...` (URI versioning NestJS,
+  `defaultVersion: '1'`); endpoint v2 kelak cukup `@Version('2')` per-handler,
+  berdampingan dengan v1.
 - **Envelope response** otomatis: single `{ ok, data }`, list `{ ok, data, metadata }`,
   error `{ ok: false, error: { code, category, message, details } }`.
 - **Identitas dari token** — `Authorization: Bearer <token>`; tidak ada `userId` di body/path

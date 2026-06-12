@@ -4,6 +4,9 @@ Spec dipecah per bagian agar mudah di-maintain — `openapi.yaml` adalah root
 yang me-`$ref` file lain; tooling (Redocly, openapi-typescript, dll.)
 me-resolve multi-file secara otomatis.
 
+> **Versioning**: seluruh API berada di base path **`/api/v1`** (sudah tercermin
+> di `servers` pada root spec) — path di `paths/` ditulis TANPA prefix tersebut.
+
 ## Struktur
 
 ```

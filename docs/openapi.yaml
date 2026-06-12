@@ -4,22 +4,30 @@ info:
   version: 1.0.0
   license:
     name: UNLICENSED
-  description: "API e-commerce multi-outlet (satu bisnis, banyak cabang) — NestJS + Drizzle + PostgreSQL.\n\
-    \n## Konvensi umum\n- **Envelope response** (otomatis via TransformInterceptor):\n  - Sukses single:\
-    \ `{ \"ok\": true, \"data\": <objek> }`\n  - Sukses list: `{ \"ok\": true, \"data\": [<objek>], \"\
-    metadata\": { \"limit\", \"hasNextPage\", \"nextCursor\" } }`\n  - Error: `{ \"ok\": false, \"error\"\
-    : { \"code\", \"category\", \"message\", \"details\", \"fields\", \"requestId\" }, \"path\", \"timestamp\"\
-    \ }`\n- **Autentikasi**: session token opaque via `Authorization: Bearer <token>` (hasil login, berlaku\
-    \ 30 hari).\n  Semua endpoint membutuhkan token KECUALI yang ditandai `security: []` (publik).\n-\
-    \ **Role**: endpoint operasional menuntut role `admin`/`super_admin` (ditandai di deskripsi).\n  Pelanggaran\
-    \ → 403 `FORBIDDEN`; tanpa token → 401 `AUTH_TOKEN_MISSING`.\n- **Pagination**: cursor keyset tanpa\
-    \ count — kirim `cursor` dari `metadata.nextCursor` halaman sebelumnya.\n- **Uang**: seluruh nominal\
-    \ adalah integer Rupiah penuh (tanpa desimal).\n- **Rate limit**: 100 req/menit per IP (default);\
-    \ login/google 10/menit, register 5/menit,\n  webhook 30/menit → 429 `RATE_LIMIT_EXCEEDED`.\n- **Idempotensi**:\
-    \ `POST /orders/checkout` wajib header `Idempotency-Key`.\n"
+  description: |
+    API e-commerce multi-outlet (satu bisnis, banyak cabang) — NestJS + Drizzle + PostgreSQL.
+
+    ## Konvensi umum
+    - **Versioning**: seluruh route berada di bawah base path `/api/v1`
+      (URI versioning; path di dokumen ini relatif terhadap base tersebut).
+      Versi berikutnya akan hidup berdampingan di `/api/v2` per-endpoint.
+    - **Envelope response** (otomatis via TransformInterceptor):
+      - Sukses single: `{ "ok": true, "data": <objek> }`
+      - Sukses list: `{ "ok": true, "data": [<objek>], "metadata": { "limit", "hasNextPage", "nextCursor" } }`
+      - Error: `{ "ok": false, "error": { "code", "category", "message", "details", "fields", "requestId" }, "path", "timestamp" }`
+    - **Autentikasi**: session token opaque — `Authorization: Bearer <token>` (mobile/desktop)
+      atau cookie httpOnly `sessionToken` (web). Berlaku 30 hari.
+      Semua endpoint membutuhkan sesi KECUALI yang ditandai `security: []` (publik).
+    - **Role**: endpoint operasional menuntut role `admin`/`super_admin` (ditandai di deskripsi).
+      Pelanggaran → 403 `FORBIDDEN`; tanpa token → 401 `AUTH_TOKEN_MISSING`.
+    - **Pagination**: cursor keyset tanpa count — kirim `cursor` dari `metadata.nextCursor` halaman sebelumnya.
+    - **Uang**: seluruh nominal adalah integer Rupiah penuh (tanpa desimal).
+    - **Rate limit**: 100 req/menit per IP (default); login/google 10/menit, register 5/menit,
+      webhook 30/menit → 429 `RATE_LIMIT_EXCEEDED`.
+    - **Idempotensi**: `POST /orders/checkout` wajib header `Idempotency-Key`.
 servers:
-- url: http://localhost:3000
-  description: Development
+- url: http://localhost:3000/api/v1
+  description: Development (base path /api/v1 — URI versioning)
 security:
 - bearerAuth: []
 - cookieAuth: []

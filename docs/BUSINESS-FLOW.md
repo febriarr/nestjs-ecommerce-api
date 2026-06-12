@@ -140,7 +140,12 @@ rate limit per-endpoint, semua operasi retry-sensitive idempoten, uang integer R
 
 Hal-hal yang berlaku untuk SEMUA alur di bagian 5.
 
-**Base URL & envelope** — semua response sukses `{ ok: true, data }` (list +`metadata`),
+**Base URL & versioning** — semua route di bawah **`/api/v1`** (URI versioning;
+seluruh path di dokumen ini relatif terhadap base itu — `const API =
+'https://<host>/api/v1'`). Versi berikutnya hidup berdampingan di `/api/v2`
+per-endpoint, jadi FE tidak perlu big-bang migration.
+
+**Envelope** — semua response sukses `{ ok: true, data }` (list +`metadata`),
 error `{ ok: false, error: { code, category, message, details, fields } }`. FE cukup
 satu interceptor: `if (!res.ok) throw mapError(body.error)`.
 

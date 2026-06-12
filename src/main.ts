@@ -1,6 +1,10 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { TransformInterceptor } from './common/interceptors/api-response.interceptor';
@@ -9,6 +13,15 @@ import { AppExceptionFilter } from './common/filters/app-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+
+  // Versioning API: seluruh route berada di /api/v1/... (URI versioning).
+  // Endpoint versi berikutnya cukup ditandai @Version('2') per-handler —
+  // v1 dan v2 berjalan berdampingan tanpa migrasi massal.
+  app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
   // Transport cookie httpOnly untuk session token (web client).
   app.use(cookieParser());
