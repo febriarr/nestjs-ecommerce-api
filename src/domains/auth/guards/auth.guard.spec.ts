@@ -18,7 +18,10 @@ interface Setup {
   context: ExecutionContext;
 }
 
-function makeSetup(authorization?: string): Setup {
+function makeSetup(
+  authorization?: string,
+  cookies?: Record<string, string>
+): Setup {
   const reflector = {
     getAllAndOverride: jest.fn().mockReturnValue(undefined),
   } as unknown as jest.Mocked<Reflector>;
@@ -31,6 +34,7 @@ function makeSetup(authorization?: string): Setup {
 
   const request = {
     headers: authorization ? { authorization } : {},
+    ...(cookies ? { cookies } : {}),
   } as RequestWithUser;
   const context = {
     switchToHttp: () => ({ getRequest: () => request }),
@@ -78,6 +82,23 @@ describe('AuthGuard', () => {
     expect(setup.sessionsService.validate).toHaveBeenCalledWith('token-abc');
     expect(setup.request.user).toEqual(user);
     expect(setup.request.sessionToken).toBe('token-abc');
+  });
+
+  it('fallback cookie httpOnly bila header Authorization tidak ada', async () => {
+    const setup = makeSetup(undefined, { sessionToken: 'cookie-token' });
+
+    await expect(setup.guard.canActivate(setup.context)).resolves.toBe(true);
+    expect(setup.sessionsService.validate).toHaveBeenCalledWith('cookie-token');
+    expect(setup.request.sessionToken).toBe('cookie-token');
+  });
+
+  it('Bearer header menang atas cookie bila keduanya ada', async () => {
+    const setup = makeSetup('Bearer header-token', {
+      sessionToken: 'cookie-token',
+    });
+
+    await expect(setup.guard.canActivate(setup.context)).resolves.toBe(true);
+    expect(setup.sessionsService.validate).toHaveBeenCalledWith('header-token');
   });
 
   it('user suspended ditolak walau sesi valid', async () => {

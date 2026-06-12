@@ -22,6 +22,7 @@ servers:
   description: Development
 security:
 - bearerAuth: []
+- cookieAuth: []
 tags:
 - name: Auth
 - name: Users
@@ -205,4 +206,14 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Session token opaque dari /auth/login | /auth/google | /auth/register
+      description: >-
+        Session token opaque dari /auth/login | /auth/google | /auth/register
+        (transport untuk mobile/desktop).
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionToken
+      description: >-
+        Token yang sama dikirim otomatis sebagai cookie httpOnly saat
+        login/register (transport untuk web; butuh fetch credentials:
+        'include'). Bearer header diutamakan bila keduanya ada.

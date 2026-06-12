@@ -1,4 +1,5 @@
 import * as bcrypt from 'bcrypt';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { UsersRepository } from '../users/users.repository';
@@ -81,25 +82,34 @@ function makeService(mocks: Mocks): AuthService {
   );
 }
 
+function makeRes(): jest.Mocked<Response> {
+  return {
+    cookie: jest.fn(),
+    clearCookie: jest.fn(),
+  } as unknown as jest.Mocked<Response>;
+}
+
 describe('AuthService.login', () => {
   let mocks: Mocks;
   let service: AuthService;
+  let res: jest.Mocked<Response>;
 
   beforeEach(() => {
     mocks = makeMocks();
     service = makeService(mocks);
+    res = makeRes();
   });
 
   it('menolak email tak terdaftar dengan pesan generik', async () => {
     await expect(
-      service.login({ email: 'x@y.co', password: 'apapun-123' }, meta)
+      service.login({ email: 'x@y.co', password: 'apapun-123' }, meta, res)
     ).rejects.toBeInstanceOf(AppException);
   });
 
   it('menolak akun OAuth-only (tanpa password)', async () => {
     mocks.usersRepository.findByEmail.mockResolvedValue(user);
     await expect(
-      service.login({ email: user.email, password: 'apapun-123' }, meta)
+      service.login({ email: user.email, password: 'apapun-123' }, meta, res)
     ).rejects.toBeInstanceOf(AppException);
   });
 
@@ -109,7 +119,7 @@ describe('AuthService.login', () => {
       password: await bcrypt.hash('benar-123', 4),
     });
     await expect(
-      service.login({ email: user.email, password: 'salah-123' }, meta)
+      service.login({ email: user.email, password: 'salah-123' }, meta, res)
     ).rejects.toBeInstanceOf(AppException);
     expect(mocks.sessionsService.create).not.toHaveBeenCalled();
   });
@@ -121,7 +131,7 @@ describe('AuthService.login', () => {
       password: await bcrypt.hash('benar-123', 4),
     });
     await expect(
-      service.login({ email: user.email, password: 'benar-123' }, meta)
+      service.login({ email: user.email, password: 'benar-123' }, meta, res)
     ).rejects.toBeInstanceOf(AppException);
   });
 
@@ -133,7 +143,8 @@ describe('AuthService.login', () => {
 
     const result = await service.login(
       { email: user.email, password: 'benar-123' },
-      meta
+      meta,
+      res
     );
 
     expect(result.token).toBe('plain-token');
@@ -141,22 +152,36 @@ describe('AuthService.login', () => {
       user.id,
       expect.objectContaining({ lastLoginAt: expect.any(Date) as Date })
     );
+    // Transport kedua: token juga di-set sebagai cookie httpOnly.
+    expect(res.cookie).toHaveBeenCalledWith(
+      'sessionToken',
+      'plain-token',
+      expect.objectContaining({
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+      })
+    );
   });
 });
 
 describe('AuthService.loginWithGoogle', () => {
   let mocks: Mocks;
   let service: AuthService;
+  let res: jest.Mocked<Response>;
 
   beforeEach(() => {
     mocks = makeMocks();
     service = makeService(mocks);
+    res = makeRes();
   });
 
   it('mendaftarkan user baru tanpa password (OAuth-only)', async () => {
     const result = await service.loginWithGoogle(
       { credential: 'gis-credential' },
-      meta
+      meta,
+      res
     );
 
     expect(mocks.usersRepository.insert).toHaveBeenCalledWith(
@@ -172,7 +197,7 @@ describe('AuthService.loginWithGoogle', () => {
   it('user existing tidak diduplikasi — metadata di-update', async () => {
     mocks.usersRepository.findByEmail.mockResolvedValue(user);
 
-    await service.loginWithGoogle({ credential: 'gis-credential' }, meta);
+    await service.loginWithGoogle({ credential: 'gis-credential' }, meta, res);
 
     expect(mocks.usersRepository.insert).not.toHaveBeenCalled();
     expect(mocks.usersRepository.update).toHaveBeenCalledWith(
@@ -192,7 +217,7 @@ describe('AuthService.loginWithGoogle', () => {
       status: 'suspended',
     });
     await expect(
-      service.loginWithGoogle({ credential: 'gis-credential' }, meta)
+      service.loginWithGoogle({ credential: 'gis-credential' }, meta, res)
     ).rejects.toBeInstanceOf(AppException);
     expect(mocks.sessionsService.create).not.toHaveBeenCalled();
   });
@@ -202,10 +227,12 @@ describe('AuthService.register', () => {
   it('tidak pernah meneruskan role (anti eskalasi)', async () => {
     const mocks = makeMocks();
     const service = makeService(mocks);
+    const res = makeRes();
 
     await service.register(
       { email: user.email, name: user.name, password: 'rahasia-123' },
-      meta
+      meta,
+      res
     );
 
     const passed = mocks.usersService.createUser.mock.calls[0][0];

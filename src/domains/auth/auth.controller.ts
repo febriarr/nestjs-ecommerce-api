@@ -6,8 +6,9 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService, ClientMeta } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -30,9 +31,10 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body() dto: RegisterDTO,
-    @Req() request: Request
+    @Req() request: Request,
+    @Res({ passthrough: true }) res: Response
   ): Promise<AuthResponseDto> {
-    return this.authService.register(dto, this.clientMeta(request));
+    return this.authService.register(dto, this.clientMeta(request), res);
   }
 
   /** Ketat: tameng brute-force kredensial. */
@@ -42,9 +44,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDTO,
-    @Req() request: Request
+    @Req() request: Request,
+    @Res({ passthrough: true }) res: Response
   ): Promise<AuthResponseDto> {
-    return this.authService.login(dto, this.clientMeta(request));
+    return this.authService.login(dto, this.clientMeta(request), res);
   }
 
   /** Login Google — body `credential` dari Google Identity Services (GIS). */
@@ -54,21 +57,28 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async loginWithGoogle(
     @Body() dto: GoogleLoginDTO,
-    @Req() request: Request
+    @Req() request: Request,
+    @Res({ passthrough: true }) res: Response
   ): Promise<AuthResponseDto> {
-    return this.authService.loginWithGoogle(dto, this.clientMeta(request));
+    return this.authService.loginWithGoogle(dto, this.clientMeta(request), res);
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() request: RequestWithUser): Promise<void> {
-    return this.authService.logout(request.sessionToken);
+  async logout(
+    @Req() request: RequestWithUser,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<void> {
+    return this.authService.logout(request.sessionToken, res);
   }
 
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  async logoutAll(@CurrentUser() user: SelectUser): Promise<void> {
-    return this.authService.logoutAll(user.id);
+  async logoutAll(
+    @CurrentUser() user: SelectUser,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<void> {
+    return this.authService.logoutAll(user.id, res);
   }
 
   @Get('me')

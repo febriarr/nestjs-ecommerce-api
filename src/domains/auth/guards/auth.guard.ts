@@ -4,6 +4,7 @@ import { SessionsService } from '../../sessions/sessions.service';
 import { UsersRepository } from '../../users/users.repository';
 import { RequestWithUser } from '../auth.types';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { SESSION_COOKIE_NAME } from '../auth.constants';
 import {
   AuthTokenInvalidException,
   AuthTokenMissingException,
@@ -11,9 +12,11 @@ import {
 import { UserSuspendedException } from '../../../common/exceptions/domains/user.exceptions';
 
 /**
- * Autentikasi via session token opaque (terdaftar GLOBAL via APP_GUARD):
- * `Authorization: Bearer <token>` → validasi sesi (expiry + last activity)
- * → muat user → tolak suspended. Route ber-@Public() dilewati.
+ * Autentikasi via session token opaque (terdaftar GLOBAL via APP_GUARD)
+ * dengan DUA transport: `Authorization: Bearer <token>` (mobile/desktop)
+ * lalu fallback cookie httpOnly `sessionToken` (web). Setelah token didapat,
+ * validasi sesi (hash + expiry + last activity) → muat user → tolak
+ * suspended — identik apa pun sumber tokennya. Route ber-@Public() dilewati.
  * User & token tersedia di request (lihat @CurrentUser / RequestWithUser).
  */
 @Injectable()
@@ -33,7 +36,8 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
-    const token = this.extractBearerToken(request);
+    const token =
+      this.extractBearerToken(request) ?? this.extractCookieToken(request);
     if (!token) {
       throw AuthTokenMissingException();
     }
@@ -60,5 +64,14 @@ export class AuthGuard implements CanActivate {
     if (!header) return null;
     const [scheme, token] = header.split(' ');
     return scheme === 'Bearer' && token ? token : null;
+  }
+
+  /** Transport web: cookie httpOnly (di-parse cookie-parser di main.ts). */
+  private extractCookieToken(request: RequestWithUser): string | null {
+    const cookies = request.cookies as
+      | Record<string, string | undefined>
+      | undefined;
+    const token = cookies?.[SESSION_COOKIE_NAME];
+    return token && token.length > 0 ? token : null;
   }
 }

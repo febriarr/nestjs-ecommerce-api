@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import type { Response } from 'express';
+import {
+  buildSessionCookieOptions,
+  CLEAR_SESSION_COOKIE_OPTIONS,
+  SESSION_COOKIE_NAME,
+} from './auth.constants';
 import { UsersService } from '../users/users.service';
 import { UsersRepository } from '../users/users.repository';
 import { SessionsService } from '../sessions/sessions.service';
@@ -30,17 +36,25 @@ export class AuthService {
   ) {}
 
   /** Registrasi publik (selalu customer) + langsung login (terbit sesi). */
-  async register(dto: RegisterDTO, meta: ClientMeta): Promise<AuthResponseDto> {
+  async register(
+    dto: RegisterDTO,
+    meta: ClientMeta,
+    res: Response
+  ): Promise<AuthResponseDto> {
     const user = await this.usersService.createUser({
       email: dto.email,
       name: dto.name,
       password: dto.password,
       phone: dto.phone,
     });
-    return this.issueSession(user.id, meta);
+    return this.issueSession(user.id, meta, res);
   }
 
-  async login(dto: LoginDTO, meta: ClientMeta): Promise<AuthResponseDto> {
+  async login(
+    dto: LoginDTO,
+    meta: ClientMeta,
+    res: Response
+  ): Promise<AuthResponseDto> {
     const user = await this.usersRepository.findByEmail(dto.email);
     // Pesan & kode error identik untuk semua kegagalan (anti enumerasi email).
     if (!user || user.password === null) {
@@ -51,7 +65,7 @@ export class AuthService {
     }
     this.assertNotSuspended(user);
 
-    return this.issueSession(user.id, meta);
+    return this.issueSession(user.id, meta, res);
   }
 
   /**
@@ -62,7 +76,8 @@ export class AuthService {
    */
   async loginWithGoogle(
     dto: GoogleLoginDTO,
-    meta: ClientMeta
+    meta: ClientMeta,
+    res: Response
   ): Promise<AuthResponseDto> {
     const profile = await this.googleVerifier.verify(dto.credential);
 
@@ -76,7 +91,7 @@ export class AuthService {
           ? { avatar: profile.picture }
           : {}),
       });
-      return this.issueSession(existing.id, meta);
+      return this.issueSession(existing.id, meta, res);
     }
 
     const created = await this.usersRepository.insert({
@@ -87,17 +102,20 @@ export class AuthService {
       emailIsVerified: profile.emailVerified,
       oauthMetadata: this.toOauthMetadata(profile),
     });
-    return this.issueSession(created.id, meta);
+    return this.issueSession(created.id, meta, res);
   }
 
-  /** Logout sesi ini saja (token dari header). */
-  async logout(sessionToken: string): Promise<void> {
+  /** Logout sesi ini saja (token dari header/cookie) + hapus cookie. */
+  async logout(sessionToken: string, res: Response): Promise<void> {
     await this.sessionsService.revoke(sessionToken);
+    // No-op aman bagi client Bearer yang tidak punya cookie.
+    res.clearCookie(SESSION_COOKIE_NAME, CLEAR_SESSION_COOKIE_OPTIONS);
   }
 
-  /** Logout seluruh perangkat. */
-  async logoutAll(userId: string): Promise<void> {
+  /** Logout seluruh perangkat + hapus cookie perangkat ini. */
+  async logoutAll(userId: string, res: Response): Promise<void> {
     await this.sessionsService.revokeAll(userId);
+    res.clearCookie(SESSION_COOKIE_NAME, CLEAR_SESSION_COOKIE_OPTIONS);
   }
 
   async me(userId: string): Promise<AuthResponseDto['user']> {
@@ -121,10 +139,17 @@ export class AuthService {
 
   // ---------- helpers ----------
 
-  /** Terbitkan sesi + catat lastLoginAt, lalu bungkus response auth. */
+  /**
+   * Terbitkan sesi + catat lastLoginAt, lalu bungkus response auth.
+   * Token dikirim lewat DUA transport sekaligus: body (mobile/desktop —
+   * disimpan di Keychain/Keystore) dan cookie httpOnly (web — tahan XSS,
+   * auto-terkirim saat refresh). Tanpa deteksi platform: client yang tidak
+   * memakai cookie tidak terpengaruh.
+   */
   private async issueSession(
     userId: string,
-    meta: ClientMeta
+    meta: ClientMeta,
+    res: Response
   ): Promise<AuthResponseDto> {
     const { session, token } = await this.sessionsService.create({
       userId,
@@ -132,6 +157,12 @@ export class AuthService {
       ipAddress: meta.ipAddress,
     });
     await this.usersRepository.update(userId, { lastLoginAt: new Date() });
+
+    res.cookie(
+      SESSION_COOKIE_NAME,
+      token,
+      buildSessionCookieOptions(session.expiresAt)
+    );
 
     return new AuthResponseDto({
       token,
