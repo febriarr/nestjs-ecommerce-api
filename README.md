@@ -1,98 +1,112 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Ecommerce Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend e-commerce **multi-outlet** (satu bisnis, banyak cabang — bukan SaaS multi-tenant)
+untuk dijual per-bisnis oleh software house. Dibangun dengan **NestJS 11 + Drizzle ORM +
+PostgreSQL**, dengan Redis (BullMQ) untuk job asinkron.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Fitur
 
-## Description
+| Area | Ringkasan |
+|---|---|
+| **Auth** | Register/login email+password, **login Google (GIS)**, session token opaque 30 hari, guard global + `@Public()`, role `super_admin`/`admin`/`customer`, rate limiting |
+| **Katalog** | Products + variants (dual SKU: `sku_number` publik auto-sequence, `sku_code` internal auto/override), media library WebP tanpa duplikat, brands, categories (tree), attributes (+ nested values), promo terjadwal ber-prioritas |
+| **Multi-outlet** | Master cabang (`servesOnline`, `isOnlineDefault`, koordinat), **inventori per-outlet** (`stock` + `reservedStock`), transfer stok antar outlet (DRAFT → SENT → RECEIVED) |
+| **Jejak audit stok** | Ledger `stock_movements` append-only — SEMUA mutasi stok (pembelian, penjualan, reservasi, transfer, koreksi, retur) lewat satu pintu dan tercatat dengan snapshot sesudah-mutasi + aktor + dokumen sumber |
+| **Pembelian** | Suppliers, purchase order (DRAFT → ORDERED → RECEIVED), penerimaan parsial (GRN) dengan over-receipt ber-flag, **quick-receive** 1 langkah untuk UMKM |
+| **Cart & checkout** | Cart per user terikat satu outlet, validasi stok live, routing outlet otomatis (sanggup semua item → terdekat → default), **reservasi stok 2 fase anti-overselling**, checkout idempoten (`Idempotency-Key`), auto-expire reservasi via BullMQ |
+| **Pembayaran** | Abstraksi `PaymentGateway` (dummy HMAC siap diganti Midtrans/Xendit), webhook idempoten, **pembayaran tunai POS**, **refund penuh + restock opsional** |
+| **Invoice** | Generate PDF (Puppeteer) → upload R2 → email lampiran (Resend) via queue; status UNPAID/PARTIALLY_PAID/PAID/OVERDUE/VOID |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Dokumentasi
 
-## Project setup
+| Dokumen | Isi |
+|---|---|
+| [`docs/openapi.yaml`](docs/openapi.yaml) | **Kontrak API lengkap** (OpenAPI 3.0, multi-file) — 78 path / 17 domain, termasuk konvensi envelope response, error code, role, pagination, dan idempotensi |
+| [`docs/README.md`](docs/README.md) | Struktur spec multi-file + cara menambah endpoint baru |
+| [`.env.example`](.env.example) | Seluruh variabel environment beserta penjelasannya |
+| [`drizzle/migrations/`](drizzle/migrations) | Riwayat migrasi database (drizzle-kit) |
 
-```bash
-$ pnpm install
-```
+Pratinjau dokumentasi API: `pnpm docs:preview` — build HTML (Redoc) lalu membukanya di browser.
 
-## Compile and run the project
+## Prasyarat
 
-```bash
-# development
-$ pnpm run start
+- Node.js 20+ dan **pnpm**
+- PostgreSQL 14+
+- Docker (untuk Redis): `docker-compose.yml` sudah disediakan
 
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
-```
-
-## Run tests
+## Setup
 
 ```bash
-# unit tests
-$ pnpm run test
+# 1. Dependensi
+pnpm install
+pnpm approve-builds          # pilih: puppeteer, sharp, bcrypt (sekali saja)
 
-# e2e tests
-$ pnpm run test:e2e
+# 2. Konfigurasi
+cp .env.example .env         # lalu isi nilainya (lihat komentar di file)
 
-# test coverage
-$ pnpm run test:cov
+# 3. Redis (broker BullMQ)
+docker compose up -d
+
+# 4. Migrasi database
+pnpm db:migrate              # DB kosong / mengikuti riwayat migrasi
+# pnpm db:push               # alternatif sinkron schema utk DB development
+#                              (JANGAN dipakai bila migrasi memuat pemindahan data)
+
+# 5. Jalankan
+pnpm start:dev
 ```
 
-## Deployment
+API berjalan di `http://localhost:3000` (atau `PORT` di `.env`).
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Skrip
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Perintah | Fungsi |
+|---|---|
+| `pnpm start:dev` | Jalankan dengan hot-reload |
+| `pnpm build` / `pnpm start:prod` | Build & jalankan produksi |
+| `pnpm lint` | ESLint + Prettier (autofix) |
+| `pnpm test` | Unit test (Jest) |
+| `pnpm db:generate` | Generate migrasi dari perubahan schema |
+| `pnpm db:migrate` | Terapkan migrasi |
+| `pnpm db:studio` | Drizzle Studio (GUI database) |
+| `pnpm docs:lint` | Validasi spec OpenAPI (Redocly) |
+| `pnpm docs:build` | Build dokumentasi HTML (Redoc) ke `docs/dist/index.html` |
+| `pnpm docs:preview` | Build + buka dokumentasi di browser (macOS `open`) |
+| `pnpm docs:bundle` | Gabungkan spec ke satu file (`docs/dist/`) utk generator client |
+
+## Arsitektur & konvensi
+
+```
+src/
+├── domains/<nama>/          # controller + service + repository + dto + module
+├── common/                  # exceptions (defineAppError), pagination cursor,
+│                            #   interceptor envelope, filter error, tipe bersama
+└── infrastructure/          # database (Drizzle schema), storage (R2), mail,
+                             #   pdf (Puppeteer), image (WebP), queue (BullMQ)
+```
+
+Konvensi penting (detail lengkap di `docs/openapi.yaml` → `info.description`):
+
+- **Envelope response** otomatis: single `{ ok, data }`, list `{ ok, data, metadata }`,
+  error `{ ok: false, error: { code, category, message, details } }`.
+- **Identitas dari token** — `Authorization: Bearer <token>`; tidak ada `userId` di body/path
+  selain subresource admin. Guard global; route publik ditandai `@Public()`.
+- **Uang** = integer Rupiah penuh (`bigint`), tanpa desimal.
+- **Soft delete** via `deletedAt`; **pagination** cursor keyset tanpa count.
+- **Stok**: available = `stock - reservedStock`; mutasi hanya lewat `OutletsRepository`
+  dan selalu menulis ledger dalam transaksi yang sama.
+- **Operasi kritis idempoten**: checkout (header `Idempotency-Key`), webhook payment,
+  pay-cash, refund — aman terhadap retry.
+
+## Testing
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+pnpm test           # 23 suites — util murni (diskon, SKU, ranking outlet, status PO,
+                    #   signature gateway) + service ber-mock (users, auth, variants)
+pnpm test:cov       # dengan coverage
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Lisensi
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Proprietary — All Rights Reserved.** Lihat [LICENSE](LICENSE). Tidak untuk
+digunakan/didistribusikan tanpa izin tertulis pemegang hak cipta.

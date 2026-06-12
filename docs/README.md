@@ -44,10 +44,14 @@ docs/
 
 ```bash
 pnpm docs:lint      # validasi spec (Redocly) — wajib hijau sebelum commit
-pnpm docs:preview   # preview dokumentasi interaktif di browser
+pnpm docs:build     # build dokumentasi HTML (Redoc) ke docs/dist/index.html
+pnpm docs:preview   # build + buka dokumentasi di browser
 pnpm docs:bundle    # gabungkan ke docs/dist/openapi.bundled.yaml (utk generator
                     # client yang tidak mendukung multi-file)
 ```
+
+Catatan: Redocly CLI dipin ke major v2 (`@redocly/cli@2`) — `preview-docs`
+sudah dihapus sejak v2, penggantinya `build-docs` seperti di atas.
 
 ## Menambah endpoint baru
 
