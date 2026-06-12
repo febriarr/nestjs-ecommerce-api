@@ -11,6 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDTO } from './dto/create-supplier.dto';
 import { UpdateSupplierDTO } from './dto/update-supplier.dto';
@@ -18,6 +19,7 @@ import { SupplierQueryDTO } from './dto/supplier-query.dto';
 import { SupplierResponseDto } from './dto/response-supplier.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 
+@Roles('admin', 'super_admin')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}

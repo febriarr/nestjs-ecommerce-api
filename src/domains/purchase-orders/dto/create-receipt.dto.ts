@@ -5,7 +5,6 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   Min,
   ValidateNested,
@@ -22,12 +21,11 @@ export class ReceiptItemDTO {
   qtyReceived: number;
 }
 
-/** Penerimaan barang (GRN) terhadap PO — parsial & bisa berulang. */
+/**
+ * Penerimaan barang (GRN) terhadap PO — parsial & bisa berulang.
+ * Penerima diambil dari user login (@CurrentUser), bukan body.
+ */
 export class CreateReceiptDTO {
-  /** Admin penerima barang. */
-  @IsUUID()
-  receivedBy: string;
-
   @IsOptional()
   @IsString()
   @MaxLength(500)

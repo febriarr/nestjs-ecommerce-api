@@ -4,7 +4,6 @@ import { StockTransfersRepository } from './stock-transfers.repository';
 import { OutletsRepository } from '../outlets/outlets.repository';
 import { CreateTransferDTO, TransferItemDTO } from './dto/create-transfer.dto';
 import { UpdateTransferDTO } from './dto/update-transfer.dto';
-import { ReceiveTransferDTO, SendTransferDTO } from './dto/transfer-action.dto';
 import { TransferQueryDTO } from './dto/transfer-query.dto';
 import { TransferResponseDto } from './dto/response-transfer.dto';
 import { SelectStockTransfer } from '../../infrastructure/database/schema';
@@ -25,7 +24,6 @@ import {
   OutletInactiveException,
   OutletNotFoundException,
 } from '../../common/exceptions/domains/outlet.exceptions';
-import { UserNotFoundException } from '../../common/exceptions/domains/user.exceptions';
 
 @Injectable()
 export class StockTransfersService {
@@ -34,7 +32,10 @@ export class StockTransfersService {
     private readonly outletsRepository: OutletsRepository
   ) {}
 
-  async create(dto: CreateTransferDTO): Promise<TransferResponseDto> {
+  async create(
+    dto: CreateTransferDTO,
+    createdBy: string
+  ): Promise<TransferResponseDto> {
     if (dto.fromOutletId === dto.toOutletId) {
       throw TransferSameOutletException({
         details: { outletId: dto.fromOutletId },
@@ -42,9 +43,6 @@ export class StockTransfersService {
     }
     await this.assertOutletActive(dto.fromOutletId);
     await this.assertOutletActive(dto.toOutletId);
-    if (!(await this.transfersRepository.userExists(dto.createdBy))) {
-      throw UserNotFoundException({ details: { userId: dto.createdBy } });
-    }
     await this.assertItems(dto.items);
 
     const transfer = await this.transfersRepository.createWithItems(
@@ -52,7 +50,7 @@ export class StockTransfersService {
         transferNumber: this.generateNumber(),
         fromOutletId: dto.fromOutletId,
         toOutletId: dto.toOutletId,
-        createdBy: dto.createdBy,
+        createdBy,
         notes: dto.notes ?? null,
       },
       dto.items.map((item) => ({
@@ -112,10 +110,9 @@ export class StockTransfersService {
    * (hanya bila available cukup) + ledger TRANSFER_OUT per item; gagal satu
    * item → seluruh transaksi rollback. Selama SENT barang "in transit".
    */
-  async send(id: string, dto: SendTransferDTO): Promise<TransferResponseDto> {
+  async send(id: string, actorId: string): Promise<TransferResponseDto> {
     const transfer = await this.getTransferOrThrow(id);
     this.assertStatus(transfer, ['DRAFT']);
-    const actorId = await this.resolveActor(dto.sentBy, transfer.createdBy);
     const items = await this.transfersRepository.listItems(id);
 
     const updated = await this.transfersRepository.withTransaction(
@@ -157,13 +154,9 @@ export class StockTransfersService {
   }
 
   /** Terima: SENT → RECEIVED. Stok masuk ke outlet tujuan + ledger TRANSFER_IN. */
-  async receive(
-    id: string,
-    dto: ReceiveTransferDTO
-  ): Promise<TransferResponseDto> {
+  async receive(id: string, actorId: string): Promise<TransferResponseDto> {
     const transfer = await this.getTransferOrThrow(id);
     this.assertStatus(transfer, ['SENT']);
-    const actorId = await this.resolveActor(dto.receivedBy, transfer.createdBy);
     const items = await this.transfersRepository.listItems(id);
 
     const updated = await this.transfersRepository.withTransaction(
@@ -261,18 +254,6 @@ export class StockTransfersService {
         });
       }
     }
-  }
-
-  /** Aktor ledger: aktor eksplisit (tervalidasi) atau fallback pembuat. */
-  private async resolveActor(
-    explicitActor: string | undefined,
-    fallback: string
-  ): Promise<string> {
-    if (explicitActor === undefined) return fallback;
-    if (!(await this.transfersRepository.userExists(explicitActor))) {
-      throw UserNotFoundException({ details: { userId: explicitActor } });
-    }
-    return explicitActor;
   }
 
   private async toResponse(

@@ -12,6 +12,8 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
@@ -21,25 +23,30 @@ import {
   CategoryTreeDto,
 } from './dto/response-category.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  @Public()
   @Get()
   async findAll(): Promise<CategoryResponseDto[]> {
     return this.categoriesService.findAll();
   }
 
+  @Public()
   @Get('tree')
   async tree(): Promise<CategoryTreeDto[]> {
     return this.categoriesService.tree();
   }
 
+  @Public()
   @Get('slug/:slug')
   async findBySlug(@Param('slug') slug: string): Promise<CategoryResponseDto> {
     return this.categoriesService.findBySlug(slug);
   }
 
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseUUIDPipe) id: string

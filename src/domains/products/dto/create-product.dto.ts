@@ -44,7 +44,5 @@ export class CreateProductDTO {
   @IsIn(productStatusEnum.enumValues)
   status?: (typeof productStatusEnum.enumValues)[number];
 
-  // Interim: nanti diisi dari user terautentikasi (req.user) saat auth guard dipasang.
-  @IsUUID()
-  createdBy: string;
+  // Pembuat produk diambil dari user login (@CurrentUser), bukan body.
 }

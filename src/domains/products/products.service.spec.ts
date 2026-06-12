@@ -27,7 +27,6 @@ const createDto: CreateProductDTO = {
   slug: 'air-max',
   categoryId: 'cat-uuid',
   brandId: 5,
-  createdBy: 'user-uuid',
 };
 
 function makeRepo(): jest.Mocked<ProductsRepository> {
@@ -70,7 +69,7 @@ describe('ProductsService', () => {
       repo.findBySlug.mockResolvedValue(null);
       repo.insert.mockResolvedValue(product);
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, 'user-uuid');
 
       expect(repo.insert).toHaveBeenCalledTimes(1);
       expect(result.slug).toBe('air-max');
@@ -78,9 +77,9 @@ describe('ProductsService', () => {
 
     it('menolak bila category tidak ada', async () => {
       repo.categoryExists.mockResolvedValue(false);
-      await expect(service.create(createDto)).rejects.toBeInstanceOf(
-        AppException
-      );
+      await expect(
+        service.create(createDto, 'user-uuid')
+      ).rejects.toBeInstanceOf(AppException);
       expect(repo.insert).not.toHaveBeenCalled();
     });
 
@@ -88,9 +87,9 @@ describe('ProductsService', () => {
       repo.categoryExists.mockResolvedValue(true);
       repo.brandExists.mockResolvedValue(true);
       repo.findBySlug.mockResolvedValue(product);
-      await expect(service.create(createDto)).rejects.toBeInstanceOf(
-        AppException
-      );
+      await expect(
+        service.create(createDto, 'user-uuid')
+      ).rejects.toBeInstanceOf(AppException);
     });
   });
 

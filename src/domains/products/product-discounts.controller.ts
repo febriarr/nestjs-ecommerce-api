@@ -10,11 +10,14 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ProductDiscountsService } from './product-discounts.service';
 import { CreateDiscountDTO } from './dto/create-discount.dto';
 import { UpdateDiscountDTO } from './dto/update-discount.dto';
 import { DiscountResponseDto } from './dto/response-discount.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('products/:productId/discounts')
 export class ProductDiscountsController {
   constructor(private readonly discountsService: ProductDiscountsService) {}
@@ -28,6 +31,7 @@ export class ProductDiscountsController {
     return this.discountsService.create(productId, dto);
   }
 
+  @Public()
   @Get()
   async list(
     @Param('productId', ParseIntPipe) productId: number
@@ -35,6 +39,7 @@ export class ProductDiscountsController {
     return this.discountsService.list(productId);
   }
 
+  @Public()
   @Get(':discountId')
   async findById(
     @Param('productId', ParseIntPipe) productId: number,

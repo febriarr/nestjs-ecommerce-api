@@ -48,6 +48,7 @@ export class ProductsService {
 
   async create(
     dto: CreateProductDTO,
+    createdBy: string,
     thumbnail?: Express.Multer.File
   ): Promise<ProductResponseDto> {
     await this.assertCategory(dto.categoryId);
@@ -61,7 +62,7 @@ export class ProductsService {
       shortDescription: dto.shortDescription ?? null,
       categoryId: dto.categoryId,
       brandId: dto.brandId ?? null,
-      createdBy: dto.createdBy,
+      createdBy,
       ...(dto.status ? { status: dto.status } : {}),
     };
 

@@ -10,12 +10,15 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ProductVariantsService } from './product-variants.service';
 import { CreateVariantDTO } from './dto/create-variant.dto';
 import { UpdateVariantDTO } from './dto/update-variant.dto';
 import { AddVariantMediaDTO } from './dto/add-variant-media.dto';
 import { VariantResponseDto } from './dto/response-variant.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('products/:productId/variants')
 export class ProductVariantsController {
   constructor(private readonly variantsService: ProductVariantsService) {}
@@ -29,6 +32,7 @@ export class ProductVariantsController {
     return this.variantsService.create(productId, dto);
   }
 
+  @Public()
   @Get()
   async list(
     @Param('productId', ParseIntPipe) productId: number
@@ -36,6 +40,7 @@ export class ProductVariantsController {
     return this.variantsService.list(productId);
   }
 
+  @Public()
   @Get(':variantId')
   async findById(
     @Param('productId', ParseIntPipe) productId: number,

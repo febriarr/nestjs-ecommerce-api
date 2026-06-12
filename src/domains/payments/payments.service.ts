@@ -10,7 +10,11 @@ import type {
 import { InitiatePaymentDTO } from './dto/initiate-payment.dto';
 import { PaymentWebhookDTO } from './dto/payment-webhook.dto';
 import { PaymentResponseDto } from './dto/response-payment.dto';
-import { SelectPayment } from '../../infrastructure/database/schema';
+import {
+  SelectPayment,
+  SelectUser,
+} from '../../infrastructure/database/schema';
+import { assertSelfOrAdmin } from '../auth/authz.util';
 import {
   PaymentAmountMismatchException,
   PaymentNotFoundException,
@@ -35,15 +39,19 @@ export class PaymentsService {
   ) {}
 
   /**
-   * Inisiasi pembayaran order PENDING. Idempotent: bila sudah ada attempt
-   * PENDING untuk order yang sama, attempt itu yang dikembalikan (tanpa
-   * membuat baris baru — partial unique index menjadi pagar terakhir).
+   * Inisiasi pembayaran order PENDING — hanya pemilik order (atau admin).
+   * Idempotent: bila sudah ada attempt PENDING untuk order yang sama,
+   * attempt itu yang dikembalikan (partial unique index pagar terakhir).
    */
-  async initiate(dto: InitiatePaymentDTO): Promise<PaymentResponseDto> {
+  async initiate(
+    requester: SelectUser,
+    dto: InitiatePaymentDTO
+  ): Promise<PaymentResponseDto> {
     const order = await this.ordersRepository.findById(dto.orderId);
     if (!order) {
       throw OrderNotFoundException({ details: { id: dto.orderId } });
     }
+    assertSelfOrAdmin(requester, order.userId);
     if (order.status !== 'PENDING') {
       throw PaymentOrderNotPayableException({
         details: { orderId: order.id, status: order.status },

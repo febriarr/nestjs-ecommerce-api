@@ -12,21 +12,26 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BrandsService } from './brands.service';
 import { CreateBrandDTO } from './dto/create-brand.dto';
 import { UpdateBrandDTO } from './dto/update-brand.dto';
 import { BrandResponseDto } from './dto/response-brand.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('brands')
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}
 
+  @Public()
   @Get()
   async findAll(): Promise<BrandResponseDto[]> {
     return this.brandsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseIntPipe) id: number
@@ -34,6 +39,7 @@ export class BrandsController {
     return this.brandsService.findById(id);
   }
 
+  @Public()
   @Get('slug/:slug')
   async findBySlug(@Param('slug') slug: string): Promise<BrandResponseDto> {
     return this.brandsService.findBySlug(slug);

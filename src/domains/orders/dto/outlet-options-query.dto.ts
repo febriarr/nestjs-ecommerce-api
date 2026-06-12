@@ -1,10 +1,7 @@
 import { IsOptional, IsUUID } from 'class-validator';
 
-/** Evaluasi outlet yang sanggup memenuhi seluruh isi cart user. */
+/** Evaluasi outlet yang sanggup memenuhi seluruh isi cart user login. */
 export class OutletOptionsQueryDTO {
-  @IsUUID()
-  userId: string;
-
   /** Alamat kirim untuk ranking kedekatan (opsional). */
   @IsOptional()
   @IsUUID()

@@ -22,6 +22,7 @@ import {
   rankOutlets,
 } from './outlet-selection.util';
 import { pickTopDiscounts, priceWithDiscount } from '../products/pricing.util';
+import { isAdmin } from '../auth/authz.util';
 import {
   InsertOrderItem,
   OrderShippingAddress,
@@ -29,6 +30,7 @@ import {
   SelectOrder,
   SelectOrderItem,
   SelectOutlet,
+  SelectUser,
 } from '../../infrastructure/database/schema';
 import { WithMetadata } from '../../common/types/api-response.type';
 import {
@@ -88,26 +90,26 @@ export class OrdersService {
    * pilih outlet (auto/override), RESERVASI stok dalam transaksi (anti
    * overselling), buat invoice terkait, lalu jadwalkan auto-expire.
    */
-  async checkout(dto: CheckoutDTO): Promise<OrderResponseDto> {
-    const customer = await this.ordersRepository.customerById(dto.userId);
+  async checkout(userId: string, dto: CheckoutDTO): Promise<OrderResponseDto> {
+    const customer = await this.ordersRepository.customerById(userId);
     if (!customer) {
-      throw UserNotFoundException({ details: { userId: dto.userId } });
+      throw UserNotFoundException({ details: { userId } });
     }
 
     const contact = await this.ordersRepository.contactById(
       dto.contactId,
-      dto.userId
+      userId
     );
     if (!contact) {
       throw OrderContactNotFoundException({
-        details: { contactId: dto.contactId, userId: dto.userId },
+        details: { contactId: dto.contactId, userId },
       });
     }
 
-    const cart = await this.cartRepository.findByUser(dto.userId);
+    const cart = await this.cartRepository.findByUser(userId);
     const cartItems = cart ? await this.cartRepository.listItems(cart.id) : [];
     if (!cart || cartItems.length === 0) {
-      throw CartEmptyException({ details: { userId: dto.userId } });
+      throw CartEmptyException({ details: { userId } });
     }
 
     const lines = await this.priceLines(
@@ -187,17 +189,18 @@ export class OrdersService {
    * terurut paling direkomendasikan (kota → provinsi → jarak → default).
    */
   async outletOptions(
+    userId: string,
     query: OutletOptionsQueryDTO
   ): Promise<OutletOptionResponseDto[]> {
-    const customer = await this.ordersRepository.customerById(query.userId);
+    const customer = await this.ordersRepository.customerById(userId);
     if (!customer) {
-      throw UserNotFoundException({ details: { userId: query.userId } });
+      throw UserNotFoundException({ details: { userId } });
     }
 
-    const cart = await this.cartRepository.findByUser(query.userId);
+    const cart = await this.cartRepository.findByUser(userId);
     const cartItems = cart ? await this.cartRepository.listItems(cart.id) : [];
     if (!cart || cartItems.length === 0) {
-      throw CartEmptyException({ details: { userId: query.userId } });
+      throw CartEmptyException({ details: { userId } });
     }
 
     const lines = await this.priceLines(
@@ -208,7 +211,7 @@ export class OrdersService {
     );
 
     const contact = query.contactId
-      ? await this.ordersRepository.contactById(query.contactId, query.userId)
+      ? await this.ordersRepository.contactById(query.contactId, userId)
       : null;
 
     const candidates = await this.outletsRepository.listOnlineCandidates();
@@ -247,15 +250,29 @@ export class OrdersService {
 
   // ---------- query ----------
 
-  async findById(id: string): Promise<OrderResponseDto> {
+  /**
+   * Detail order dengan cek kepemilikan: customer hanya boleh melihat order
+   * miliknya (404 bila bukan — anti enumerasi id); admin bebas.
+   */
+  async findByIdFor(
+    requester: SelectUser,
+    id: string
+  ): Promise<OrderResponseDto> {
     const order = await this.getOrderOrThrow(id);
+    if (!isAdmin(requester) && order.userId !== requester.id) {
+      throw OrderNotFoundException({ details: { id } });
+    }
     return this.toOrderResponse(order);
   }
 
-  async list(query: OrderQueryDTO): Promise<WithMetadata<OrderResponseDto[]>> {
+  /** List order milik `userId` (identitas dari token). */
+  async list(
+    userId: string,
+    query: OrderQueryDTO
+  ): Promise<WithMetadata<OrderResponseDto[]>> {
     const limit = query.limit ?? DEFAULT_PAGE_LIMIT;
     const rows = await this.ordersRepository.listByUser(
-      query.userId,
+      userId,
       query.status,
       decodeStringCursor(query.cursor),
       limit
@@ -269,9 +286,18 @@ export class OrdersService {
 
   // ---------- transisi status ----------
 
-  /** Batalkan order PENDING: lepas reservasi stok + invoice di-VOID. */
-  async cancel(id: string): Promise<OrderResponseDto> {
+  /**
+   * Batalkan order PENDING: lepas reservasi stok + invoice di-VOID.
+   * Customer hanya boleh membatalkan order miliknya (404 bila bukan).
+   */
+  async cancelFor(
+    requester: SelectUser,
+    id: string
+  ): Promise<OrderResponseDto> {
     const order = await this.getOrderOrThrow(id);
+    if (!isAdmin(requester) && order.userId !== requester.id) {
+      throw OrderNotFoundException({ details: { id } });
+    }
     const updated = await this.releaseAndTransition(order, 'CANCELLED');
     if (!updated) {
       throw OrderInvalidStatusTransitionException({

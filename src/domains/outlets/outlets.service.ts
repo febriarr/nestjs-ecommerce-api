@@ -99,7 +99,8 @@ export class OutletsService {
   async setInventory(
     outletId: number,
     variantId: number,
-    dto: SetInventoryDTO
+    dto: SetInventoryDTO,
+    actorId: string
   ): Promise<InventoryResponseDto> {
     await this.getOutletOrThrow(outletId);
     if (!(await this.outletsRepository.variantExists(variantId))) {
@@ -123,7 +124,7 @@ export class OutletsService {
       outletId,
       variantId,
       dto.stock,
-      { note: dto.note, actorId: dto.adjustedBy }
+      { note: dto.note, actorId }
     );
     const view = await this.outletsRepository.findInventoryView(
       outletId,

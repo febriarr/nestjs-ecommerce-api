@@ -10,12 +10,14 @@ import {
   Post,
   Res,
 } from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
 import type { Response } from 'express';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDTO } from './dto/create-invoice.dto';
 import { UpdateInvoiceStatusDTO } from './dto/update-invoice-status.dto';
 import { InvoiceResponseDto } from './dto/response-invoice.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('invoices')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}

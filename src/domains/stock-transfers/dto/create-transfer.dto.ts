@@ -5,7 +5,6 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   Min,
   ValidateNested,
@@ -21,6 +20,7 @@ export class TransferItemDTO {
   quantity: number;
 }
 
+/** Pembuat transfer diambil dari user login (@CurrentUser), bukan body. */
 export class CreateTransferDTO {
   @IsInt()
   @Min(1)
@@ -29,10 +29,6 @@ export class CreateTransferDTO {
   @IsInt()
   @Min(1)
   toOutletId: number;
-
-  /** Admin pembuat (belum ada auth guard — konvensi products.createdBy). */
-  @IsUUID()
-  createdBy: string;
 
   @IsOptional()
   @IsString()

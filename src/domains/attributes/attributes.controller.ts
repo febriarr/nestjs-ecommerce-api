@@ -10,6 +10,8 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AttributesService } from './attributes.service';
 import { CreateAttributeDTO } from './dto/create-attribute.dto';
 import { UpdateAttributeDTO } from './dto/update-attribute.dto';
@@ -18,15 +20,18 @@ import { CreateAttributeValueDTO } from './dto/create-attribute-value.dto';
 import { UpdateAttributeValueDTO } from './dto/update-attribute-value.dto';
 import { AttributeValueResponseDto } from './dto/response-attribute-value.dto';
 
+@Roles('admin', 'super_admin')
 @Controller('attributes')
 export class AttributesController {
   constructor(private readonly attributesService: AttributesService) {}
 
+  @Public()
   @Get()
   async findAll(): Promise<AttributeResponseDto[]> {
     return this.attributesService.findAll();
   }
 
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseIntPipe) id: number
@@ -56,6 +61,7 @@ export class AttributesController {
 
   // ---------- attribute values ----------
 
+  @Public()
   @Get(':id/values')
   async listValues(
     @Param('id', ParseIntPipe) id: number

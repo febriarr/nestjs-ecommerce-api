@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { eq, and, isNull } from 'drizzle-orm';
+import { Injectable } from '@nestjs/common';
+import { and, desc, eq, ilike, isNull, lt, or } from 'drizzle-orm';
 
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
   users,
   SelectUser,
   InsertUser,
+  Role,
+  Status,
 } from '../../infrastructure/database/schema';
 import { BaseRepository } from '../../common/abstracts/base.repository';
+
+export interface UserListFilter {
+  role?: Role;
+  status?: Status;
+  search?: string;
+}
 
 @Injectable()
 export class UsersRepository extends BaseRepository {
@@ -35,42 +43,51 @@ export class UsersRepository extends BaseRepository {
     return user ?? null;
   }
 
+  /** Keyset pagination (uuidv7 time-ordered), urut terbaru dulu. */
+  async list(
+    filter: UserListFilter,
+    cursorId: string | null,
+    limit: number
+  ): Promise<SelectUser[]> {
+    const conditions = [isNull(users.deletedAt)];
+    if (filter.role) conditions.push(eq(users.role, filter.role));
+    if (filter.status) conditions.push(eq(users.status, filter.status));
+    if (filter.search) {
+      const pattern = `%${filter.search}%`;
+      const search = or(
+        ilike(users.name, pattern),
+        ilike(users.email, pattern)
+      );
+      if (search) conditions.push(search);
+    }
+    if (cursorId !== null) conditions.push(lt(users.id, cursorId));
+
+    return this.db
+      .select()
+      .from(users)
+      .where(and(...conditions))
+      .orderBy(desc(users.id))
+      .limit(limit + 1);
+  }
+
   async insert(data: InsertUser): Promise<SelectUser> {
     const [created] = await this.db.insert(users).values(data).returning();
-
-    if (!created) {
-      throw new Error('Insert failed');
-    }
-
     return created;
   }
 
   async update(id: string, data: Partial<InsertUser>): Promise<SelectUser> {
     const [updated] = await this.db
       .update(users)
-      .set({ ...data, updatedAt: new Date() })
+      .set(data)
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .returning();
-
-    if (!updated) {
-      throw new NotFoundException(`User #${id} not found`);
-    }
-
     return updated;
   }
 
-  // soft delete
-  async softDelete(id: string): Promise<SelectUser> {
-    const [deleted] = await this.db
+  async softDelete(id: string): Promise<void> {
+    await this.db
       .update(users)
       .set({ deletedAt: new Date() })
-      .where(and(eq(users.id, id), isNull(users.deletedAt)))
-      .returning();
-
-    if (!deleted) {
-      throw new NotFoundException(`User #${id} not found`);
-    }
-
-    return deleted;
+      .where(and(eq(users.id, id), isNull(users.deletedAt)));
   }
 }

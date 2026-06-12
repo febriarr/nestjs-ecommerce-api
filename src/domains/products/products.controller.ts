@@ -14,6 +14,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import type { SelectUser } from '../../infrastructure/database/schema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
 import { CreateProductDTO } from './dto/create-product.dto';
@@ -28,6 +32,8 @@ import { SetThumbnailDTO } from './dto/set-thumbnail.dto';
 import { ProductMediaResponseDto } from './dto/response-product-media.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 
+/** Katalog produk — mutasi khusus staf internal; GET publik (storefront). */
+@Roles('admin', 'super_admin')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -36,12 +42,14 @@ export class ProductsController {
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('thumbnail'))
   async create(
+    @CurrentUser() user: SelectUser,
     @Body() dto: CreateProductDTO,
     @UploadedFile() thumbnail?: Express.Multer.File
   ): Promise<ProductResponseDto> {
-    return this.productsService.create(dto, thumbnail);
+    return this.productsService.create(dto, user.id, thumbnail);
   }
 
+  @Public()
   @Get()
   async list(
     @Query() query: ProductQueryDTO
@@ -49,11 +57,13 @@ export class ProductsController {
     return this.productsService.list(query);
   }
 
+  @Public()
   @Get('slug/:slug')
   async findBySlug(@Param('slug') slug: string): Promise<ProductResponseDto> {
     return this.productsService.findBySlug(slug);
   }
 
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseIntPipe) id: number
@@ -86,6 +96,7 @@ export class ProductsController {
     return this.productsService.addAttribute(id, dto);
   }
 
+  @Public()
   @Get(':id/attributes')
   async listAttributes(
     @Param('id', ParseIntPipe) id: number
@@ -116,6 +127,7 @@ export class ProductsController {
     return this.productsService.addMedia(id, image.buffer, dto);
   }
 
+  @Public()
   @Get(':id/media')
   async listMedia(
     @Param('id', ParseIntPipe) id: number

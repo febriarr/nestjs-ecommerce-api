@@ -21,6 +21,7 @@ export class OfflineOrderItemDTO {
 /**
  * Order OFFLINE (POS/grosir): outlet = tempat kasir bertransaksi, tanpa
  * routing & tanpa alamat kirim. Item dikirim eksplisit (bukan dari cart).
+ * Kasir = user login (@Roles admin); `userId` di sini adalah PELANGGAN.
  */
 export class CreateOfflineOrderDTO {
   /** User pelanggan (akun member/walk-in yang sudah terdaftar). */

@@ -11,13 +11,17 @@ import {
   Query,
 } from '@nestjs/common';
 import { StockTransfersService } from './stock-transfers.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import type { SelectUser } from '../../infrastructure/database/schema';
 import { CreateTransferDTO } from './dto/create-transfer.dto';
 import { UpdateTransferDTO } from './dto/update-transfer.dto';
-import { ReceiveTransferDTO, SendTransferDTO } from './dto/transfer-action.dto';
 import { TransferQueryDTO } from './dto/transfer-query.dto';
 import { TransferResponseDto } from './dto/response-transfer.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 
+/** Transfer stok antar outlet — khusus staf internal. */
+@Roles('admin', 'super_admin')
 @Controller('stock-transfers')
 export class StockTransfersController {
   constructor(private readonly transfersService: StockTransfersService) {}
@@ -38,8 +42,11 @@ export class StockTransfersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateTransferDTO): Promise<TransferResponseDto> {
-    return this.transfersService.create(dto);
+  async create(
+    @CurrentUser() user: SelectUser,
+    @Body() dto: CreateTransferDTO
+  ): Promise<TransferResponseDto> {
+    return this.transfersService.create(dto, user.id);
   }
 
   @Patch(':id')
@@ -54,20 +61,20 @@ export class StockTransfersController {
   @Post(':id/send')
   @HttpCode(HttpStatus.OK)
   async send(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: SendTransferDTO
+    @CurrentUser() user: SelectUser,
+    @Param('id', ParseUUIDPipe) id: string
   ): Promise<TransferResponseDto> {
-    return this.transfersService.send(id, dto);
+    return this.transfersService.send(id, user.id);
   }
 
   /** SENT → RECEIVED: stok masuk ke outlet tujuan. */
   @Post(':id/receive')
   @HttpCode(HttpStatus.OK)
   async receive(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ReceiveTransferDTO
+    @CurrentUser() user: SelectUser,
+    @Param('id', ParseUUIDPipe) id: string
   ): Promise<TransferResponseDto> {
-    return this.transfersService.receive(id, dto);
+    return this.transfersService.receive(id, user.id);
   }
 
   @Post(':id/cancel')

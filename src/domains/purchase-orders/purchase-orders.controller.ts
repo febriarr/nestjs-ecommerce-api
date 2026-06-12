@@ -13,6 +13,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import type { SelectUser } from '../../infrastructure/database/schema';
 import { CreatePurchaseOrderDTO } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDTO } from './dto/update-purchase-order.dto';
 import { PoItemInputDTO } from './dto/po-item-input.dto';
@@ -25,6 +28,8 @@ import { ReceiptResponseDto } from './dto/response-receipt.dto';
 import { QuickReceiveResponseDto } from './dto/response-quick-receive.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 
+/** Modul pembelian — khusus staf internal. */
+@Roles('admin', 'super_admin')
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly poService: PurchaseOrdersService) {}
@@ -46,18 +51,20 @@ export class PurchaseOrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
+    @CurrentUser() user: SelectUser,
     @Body() dto: CreatePurchaseOrderDTO
   ): Promise<PurchaseOrderResponseDto> {
-    return this.poService.create(dto);
+    return this.poService.create(dto, user.id);
   }
 
   /** "Barang Masuk" 1 langkah: PO + GRN + stok dalam satu transaksi. */
   @Post('quick-receive')
   @HttpCode(HttpStatus.CREATED)
   async quickReceive(
+    @CurrentUser() user: SelectUser,
     @Body() dto: QuickReceiveDTO
   ): Promise<QuickReceiveResponseDto> {
-    return this.poService.quickReceive(dto);
+    return this.poService.quickReceive(dto, user.id);
   }
 
   @Patch(':id')
@@ -119,10 +126,11 @@ export class PurchaseOrdersController {
   @Post(':id/receipts')
   @HttpCode(HttpStatus.CREATED)
   async createReceipt(
+    @CurrentUser() user: SelectUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReceiptDTO
   ): Promise<ReceiptResponseDto> {
-    return this.poService.createReceipt(id, dto);
+    return this.poService.createReceipt(id, dto, user.id);
   }
 
   @Get(':id/receipts')

@@ -1,13 +1,7 @@
 import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 
-/**
- * Checkout order ONLINE dari cart user.
- * `userId` eksplisit (belum ada auth guard — konvensi products.createdBy).
- */
+/** Checkout order ONLINE dari cart user login (identitas dari Bearer token). */
 export class CheckoutDTO {
-  @IsUUID()
-  userId: string;
-
   /** Alamat kirim: id user_contacts milik user. */
   @IsUUID()
   contactId: string;

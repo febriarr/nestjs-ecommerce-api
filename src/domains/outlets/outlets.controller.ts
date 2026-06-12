@@ -13,6 +13,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { OutletsService } from './outlets.service';
+import { Public } from '../auth/decorators/public.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import type { SelectUser } from '../../infrastructure/database/schema';
 import { CreateOutletDTO } from './dto/create-outlet.dto';
 import { UpdateOutletDTO } from './dto/update-outlet.dto';
 import { OutletQueryDTO } from './dto/outlet-query.dto';
@@ -23,10 +27,14 @@ import { MovementResponseDto } from './dto/response-movement.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 import { CursorQueryDTO } from '../../common/dto/cursor-query.dto';
 
+/** Manajemen outlet & inventori — staf internal; info cabang (GET) publik. */
+@Roles('admin', 'super_admin')
 @Controller('outlets')
 export class OutletsController {
   constructor(private readonly outletsService: OutletsService) {}
 
+  /** Publik: info cabang untuk storefront (alamat, jam buka). */
+  @Public()
   @Get()
   async list(
     @Query() query: OutletQueryDTO
@@ -34,6 +42,7 @@ export class OutletsController {
     return this.outletsService.list(query);
   }
 
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseIntPipe) id: number
@@ -81,11 +90,12 @@ export class OutletsController {
 
   @Put(':id/inventory/:variantId')
   async setInventory(
+    @CurrentUser() user: SelectUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('variantId', ParseIntPipe) variantId: number,
     @Body() dto: SetInventoryDTO
   ): Promise<InventoryResponseDto> {
-    return this.outletsService.setInventory(id, variantId, dto);
+    return this.outletsService.setInventory(id, variantId, dto, user.id);
   }
 
   /** Jejak audit stok (ledger append-only) sebuah variant di outlet ini. */

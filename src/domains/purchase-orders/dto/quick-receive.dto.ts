@@ -5,7 +5,6 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   Min,
   ValidateNested,
@@ -42,9 +41,7 @@ export class QuickReceiveDTO {
   @Min(1)
   outletId: number;
 
-  /** Admin penerima — menjadi createdBy PO sekaligus receivedBy GRN. */
-  @IsUUID()
-  receivedBy: string;
+  // Penerima (= createdBy PO & receivedBy GRN) dari user login (@CurrentUser).
 
   @IsOptional()
   @IsString()

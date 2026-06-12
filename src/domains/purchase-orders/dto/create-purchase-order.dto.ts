@@ -5,13 +5,13 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { PoItemInputDTO } from './po-item-input.dto';
 
+/** Pembuat PO diambil dari user login (@CurrentUser), bukan body. */
 export class CreatePurchaseOrderDTO {
   @IsInt()
   @Min(1)
@@ -21,10 +21,6 @@ export class CreatePurchaseOrderDTO {
   @IsInt()
   @Min(1)
   outletId: number;
-
-  /** Admin pembuat (belum ada auth guard — konvensi products.createdBy). */
-  @IsUUID()
-  createdBy: string;
 
   @IsOptional()
   @IsDateString()

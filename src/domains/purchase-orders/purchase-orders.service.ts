@@ -47,7 +47,6 @@ import {
   OutletNotFoundException,
 } from '../../common/exceptions/domains/outlet.exceptions';
 import { VariantNotFoundException } from '../../common/exceptions/domains/product-variant.exceptions';
-import { UserNotFoundException } from '../../common/exceptions/domains/user.exceptions';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -59,12 +58,12 @@ export class PurchaseOrdersService {
 
   // ---------- PO lifecycle ----------
 
-  async create(dto: CreatePurchaseOrderDTO): Promise<PurchaseOrderResponseDto> {
+  async create(
+    dto: CreatePurchaseOrderDTO,
+    createdBy: string
+  ): Promise<PurchaseOrderResponseDto> {
     await this.assertSupplier(dto.supplierId);
     await this.assertOutletReceivable(dto.outletId);
-    if (!(await this.poRepository.userExists(dto.createdBy))) {
-      throw UserNotFoundException({ details: { userId: dto.createdBy } });
-    }
 
     const items = dto.items ?? [];
     await this.assertItemInputs(items);
@@ -74,7 +73,7 @@ export class PurchaseOrdersService {
         poNumber: this.generateNumber('PO'),
         supplierId: dto.supplierId,
         outletId: dto.outletId,
-        createdBy: dto.createdBy,
+        createdBy,
         notes: dto.notes ?? null,
         ...(dto.expectedAt ? { expectedAt: new Date(dto.expectedAt) } : {}),
       },
@@ -239,13 +238,11 @@ export class PurchaseOrdersService {
    */
   async createReceipt(
     id: string,
-    dto: CreateReceiptDTO
+    dto: CreateReceiptDTO,
+    receivedBy: string
   ): Promise<ReceiptResponseDto> {
     const po = await this.getPoOrThrow(id);
     this.assertStatus(po, ['ORDERED', 'PARTIALLY_RECEIVED']);
-    if (!(await this.poRepository.userExists(dto.receivedBy))) {
-      throw UserNotFoundException({ details: { userId: dto.receivedBy } });
-    }
 
     const poItemIds = dto.items.map((item) => item.poItemId);
     if (new Set(poItemIds).size !== poItemIds.length) {
@@ -271,7 +268,7 @@ export class PurchaseOrdersService {
           receiptNumber: this.generateNumber('GRN'),
           poId: id,
           outletId: po.outletId,
-          receivedBy: dto.receivedBy,
+          receivedBy,
           notes: dto.notes ?? null,
         });
 
@@ -308,7 +305,7 @@ export class PurchaseOrdersService {
             {
               refType: 'goods_receipt',
               refId: created.id,
-              actorId: dto.receivedBy,
+              actorId: receivedBy,
             }
           );
 
@@ -343,12 +340,12 @@ export class PurchaseOrdersService {
    * penerimaan bila gagal di tengah. Klien yang butuh alur formal tetap
    * memakai create → submit → receipts.
    */
-  async quickReceive(dto: QuickReceiveDTO): Promise<QuickReceiveResponseDto> {
+  async quickReceive(
+    dto: QuickReceiveDTO,
+    receivedBy: string
+  ): Promise<QuickReceiveResponseDto> {
     await this.assertSupplier(dto.supplierId);
     await this.assertOutletReceivable(dto.outletId);
-    if (!(await this.poRepository.userExists(dto.receivedBy))) {
-      throw UserNotFoundException({ details: { userId: dto.receivedBy } });
-    }
     await this.assertItemInputs(
       dto.items.map((item) => ({
         variantId: item.variantId,
@@ -363,7 +360,7 @@ export class PurchaseOrdersService {
           poNumber: this.generateNumber('PO'),
           supplierId: dto.supplierId,
           outletId: dto.outletId,
-          createdBy: dto.receivedBy,
+          createdBy: receivedBy,
           notes: dto.notes ?? null,
           status: 'RECEIVED',
         });
@@ -383,7 +380,7 @@ export class PurchaseOrdersService {
           receiptNumber: this.generateNumber('GRN'),
           poId: createdPo.id,
           outletId: dto.outletId,
-          receivedBy: dto.receivedBy,
+          receivedBy,
           notes: dto.notes ?? null,
         });
 
@@ -406,7 +403,7 @@ export class PurchaseOrdersService {
             {
               refType: 'goods_receipt',
               refId: createdReceipt.id,
-              actorId: dto.receivedBy,
+              actorId: receivedBy,
             }
           );
           responses.push({
