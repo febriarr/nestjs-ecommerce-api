@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Ecommerce Backend API
+  version: 1.0.0
+  license:
+    name: UNLICENSED
+  description: "API e-commerce multi-outlet (satu bisnis, banyak cabang) — NestJS + Drizzle + PostgreSQL.\n\
+    \n## Konvensi umum\n- **Envelope response** (otomatis via TransformInterceptor):\n  - Sukses single:\
+    \ `{ \"ok\": true, \"data\": <objek> }`\n  - Sukses list: `{ \"ok\": true, \"data\": [<objek>], \"\
+    metadata\": { \"limit\", \"hasNextPage\", \"nextCursor\" } }`\n  - Error: `{ \"ok\": false, \"error\"\
+    : { \"code\", \"category\", \"message\", \"details\", \"fields\", \"requestId\" }, \"path\", \"timestamp\"\
+    \ }`\n- **Autentikasi**: session token opaque via `Authorization: Bearer <token>` (hasil login, berlaku\
+    \ 30 hari).\n  Semua endpoint membutuhkan token KECUALI yang ditandai `security: []` (publik).\n-\
+    \ **Role**: endpoint operasional menuntut role `admin`/`super_admin` (ditandai di deskripsi).\n  Pelanggaran\
+    \ → 403 `FORBIDDEN`; tanpa token → 401 `AUTH_TOKEN_MISSING`.\n- **Pagination**: cursor keyset tanpa\
+    \ count — kirim `cursor` dari `metadata.nextCursor` halaman sebelumnya.\n- **Uang**: seluruh nominal\
+    \ adalah integer Rupiah penuh (tanpa desimal).\n- **Rate limit**: 100 req/menit per IP (default);\
+    \ login/google 10/menit, register 5/menit,\n  webhook 30/menit → 429 `RATE_LIMIT_EXCEEDED`.\n- **Idempotensi**:\
+    \ `POST /orders/checkout` wajib header `Idempotency-Key`.\n"
+servers:
+- url: http://localhost:3000
+  description: Development
+security:
+- bearerAuth: []
+tags:
+- name: Auth
+- name: Users
+- name: Contacts
+  description: Alamat pengiriman user (sumber `contactId` checkout)
+- name: Brands
+- name: Categories
+- name: Attributes
+- name: Products
+- name: Variants
+- name: Discounts
+- name: Outlets
+- name: Inventory
+  description: Stok per outlet + jejak audit (ledger)
+- name: Cart
+- name: Orders
+- name: Payments
+- name: Invoices
+- name: Suppliers
+- name: Purchase Orders
+- name: Stock Transfers
+paths:
+  /auth/register:
+    $ref: ./paths/auth.yaml#/auth-register
+  /auth/login:
+    $ref: ./paths/auth.yaml#/auth-login
+  /auth/google:
+    $ref: ./paths/auth.yaml#/auth-google
+  /auth/logout:
+    $ref: ./paths/auth.yaml#/auth-logout
+  /auth/logout-all:
+    $ref: ./paths/auth.yaml#/auth-logout-all
+  /auth/me:
+    $ref: ./paths/auth.yaml#/auth-me
+  /auth/sessions:
+    $ref: ./paths/auth.yaml#/auth-sessions
+  /users:
+    $ref: ./paths/users.yaml#/users
+  /users/{id}:
+    $ref: ./paths/users.yaml#/users-id
+  /users/{id}/password:
+    $ref: ./paths/users.yaml#/users-id-password
+  /users/{userId}/contacts:
+    $ref: ./paths/contacts.yaml#/users-userid-contacts
+  /users/{userId}/contacts/{contactId}:
+    $ref: ./paths/contacts.yaml#/users-userid-contacts-contactid
+  /users/{userId}/contacts/{contactId}/primary:
+    $ref: ./paths/contacts.yaml#/users-userid-contacts-contactid-primary
+  /brands:
+    $ref: ./paths/brands.yaml#/brands
+  /brands/{id}:
+    $ref: ./paths/brands.yaml#/brands-id
+  /brands/slug/{slug}:
+    $ref: ./paths/brands.yaml#/brands-slug-slug
+  /categories:
+    $ref: ./paths/categories.yaml#/categories
+  /categories/tree:
+    $ref: ./paths/categories.yaml#/categories-tree
+  /categories/slug/{slug}:
+    $ref: ./paths/categories.yaml#/categories-slug-slug
+  /categories/{id}:
+    $ref: ./paths/categories.yaml#/categories-id
+  /attributes:
+    $ref: ./paths/attributes.yaml#/attributes
+  /attributes/{id}:
+    $ref: ./paths/attributes.yaml#/attributes-id
+  /attributes/{id}/values:
+    $ref: ./paths/attributes.yaml#/attributes-id-values
+  /attributes/{id}/values/{valueId}:
+    $ref: ./paths/attributes.yaml#/attributes-id-values-valueid
+  /products:
+    $ref: ./paths/products.yaml#/products
+  /products/slug/{slug}:
+    $ref: ./paths/products.yaml#/products-slug-slug
+  /products/{id}:
+    $ref: ./paths/products.yaml#/products-id
+  /products/{id}/attributes:
+    $ref: ./paths/products.yaml#/products-id-attributes
+  /products/{id}/attributes/{attributeId}:
+    $ref: ./paths/products.yaml#/products-id-attributes-attributeid
+  /products/{id}/media:
+    $ref: ./paths/products.yaml#/products-id-media
+  /products/{id}/media/reorder:
+    $ref: ./paths/products.yaml#/products-id-media-reorder
+  /products/{id}/media/{mediaId}:
+    $ref: ./paths/products.yaml#/products-id-media-mediaid
+  /products/{id}/thumbnail:
+    $ref: ./paths/products.yaml#/products-id-thumbnail
+  /products/{productId}/variants:
+    $ref: ./paths/variants.yaml#/products-productid-variants
+  /products/{productId}/variants/{variantId}:
+    $ref: ./paths/variants.yaml#/products-productid-variants-variantid
+  /products/{productId}/variants/{variantId}/media:
+    $ref: ./paths/variants.yaml#/products-productid-variants-variantid-media
+  /products/{productId}/variants/{variantId}/media/{mediaId}:
+    $ref: ./paths/variants.yaml#/products-productid-variants-variantid-media-mediaid
+  /products/{productId}/discounts:
+    $ref: ./paths/discounts.yaml#/products-productid-discounts
+  /products/{productId}/discounts/{discountId}:
+    $ref: ./paths/discounts.yaml#/products-productid-discounts-discountid
+  /outlets:
+    $ref: ./paths/outlets.yaml#/outlets
+  /outlets/{id}:
+    $ref: ./paths/outlets.yaml#/outlets-id
+  /outlets/{id}/inventory:
+    $ref: ./paths/outlets.yaml#/outlets-id-inventory
+  /outlets/{id}/inventory/{variantId}:
+    $ref: ./paths/outlets.yaml#/outlets-id-inventory-variantid
+  /outlets/{id}/inventory/{variantId}/movements:
+    $ref: ./paths/outlets.yaml#/outlets-id-inventory-variantid-movements
+  /cart:
+    $ref: ./paths/cart.yaml#/cart
+  /cart/outlet:
+    $ref: ./paths/cart.yaml#/cart-outlet
+  /cart/items:
+    $ref: ./paths/cart.yaml#/cart-items
+  /cart/items/{variantId}:
+    $ref: ./paths/cart.yaml#/cart-items-variantid
+  /orders/outlet-options:
+    $ref: ./paths/orders.yaml#/orders-outlet-options
+  /orders:
+    $ref: ./paths/orders.yaml#/orders
+  /orders/{id}:
+    $ref: ./paths/orders.yaml#/orders-id
+  /orders/checkout:
+    $ref: ./paths/orders.yaml#/orders-checkout
+  /orders/offline:
+    $ref: ./paths/orders.yaml#/orders-offline
+  /orders/{id}/cancel:
+    $ref: ./paths/orders.yaml#/orders-id-cancel
+  /payments/initiate:
+    $ref: ./paths/payments.yaml#/payments-initiate
+  /payments/cash:
+    $ref: ./paths/payments.yaml#/payments-cash
+  /payments/refund:
+    $ref: ./paths/payments.yaml#/payments-refund
+  /payments/webhook/{provider}:
+    $ref: ./paths/payments.yaml#/payments-webhook-provider
+  /invoices:
+    $ref: ./paths/invoices.yaml#/invoices
+  /invoices/{id}:
+    $ref: ./paths/invoices.yaml#/invoices-id
+  /invoices/{id}/status:
+    $ref: ./paths/invoices.yaml#/invoices-id-status
+  /invoices/{id}/send:
+    $ref: ./paths/invoices.yaml#/invoices-id-send
+  /invoices/{id}/pdf/download:
+    $ref: ./paths/invoices.yaml#/invoices-id-pdf-download
+  /suppliers:
+    $ref: ./paths/suppliers.yaml#/suppliers
+  /suppliers/{id}:
+    $ref: ./paths/suppliers.yaml#/suppliers-id
+  /purchase-orders:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders
+  /purchase-orders/quick-receive:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-quick-receive
+  /purchase-orders/{id}:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id
+  /purchase-orders/{id}/submit:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id-submit
+  /purchase-orders/{id}/cancel:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id-cancel
+  /purchase-orders/{id}/items:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id-items
+  /purchase-orders/{id}/items/{itemId}:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id-items-itemid
+  /purchase-orders/{id}/receipts:
+    $ref: ./paths/purchase-orders.yaml#/purchase-orders-id-receipts
+  /stock-transfers:
+    $ref: ./paths/stock-transfers.yaml#/stock-transfers
+  /stock-transfers/{id}:
+    $ref: ./paths/stock-transfers.yaml#/stock-transfers-id
+  /stock-transfers/{id}/send:
+    $ref: ./paths/stock-transfers.yaml#/stock-transfers-id-send
+  /stock-transfers/{id}/receive:
+    $ref: ./paths/stock-transfers.yaml#/stock-transfers-id-receive
+  /stock-transfers/{id}/cancel:
+    $ref: ./paths/stock-transfers.yaml#/stock-transfers-id-cancel
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Session token opaque dari /auth/login | /auth/google | /auth/register

@@ -1,0 +1,191 @@
+outlets:
+  get:
+    tags:
+    - Outlets
+    summary: Daftar outlet (publik — info cabang storefront)
+    security: []
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: isActive
+      in: query
+      schema:
+        type: boolean
+    - name: servesOnline
+      in: query
+      schema:
+        type: boolean
+    - name: search
+      in: query
+      schema:
+        type: string
+        description: nama/kode/kota
+    responses:
+      '200':
+        description: Daftar outlet
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/outlets.yaml#/Outlet
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Outlets
+    summary: Buat outlet (admin) — isOnlineDefault baru meng-unset yang lama
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/outlets.yaml#/OutletInput
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/OutletSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+outlets-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Outlets
+    summary: Detail outlet (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/OutletSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Outlets
+    summary: Update outlet (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/outlets.yaml#/OutletInput
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/OutletSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Outlets
+    summary: Soft delete outlet (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+outlets-id-inventory:
+  get:
+    tags:
+    - Inventory
+    summary: Inventori sebuah outlet (admin, cursor)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Daftar inventori
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/outlets.yaml#/Inventory
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+outlets-id-inventory-variantid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  - $ref: ../components/parameters.yaml#/VariantId
+  get:
+    tags:
+    - Inventory
+    summary: Inventori satu variant di outlet (admin)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/InventorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  put:
+    tags:
+    - Inventory
+    summary: Set stok absolut / upsert (admin) — tercatat sebagai ADJUSTMENT
+    description: 'Role: admin/super_admin. Pintu masuk koreksi/stok opname — barang datang dari
+
+      pembelian memakai penerimaan PO. Stok baru < reservedStock berjalan →
+
+      422 `OUTLET_INVENTORY_INVALID`. Pelaku = user login, tercatat di ledger.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - stock
+            properties:
+              stock:
+                type: integer
+                minimum: 0
+              note:
+                type: string
+                maxLength: 255
+                description: alasan (tampil di jejak audit)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/InventorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+outlets-id-inventory-variantid-movements:
+  get:
+    tags:
+    - Inventory
+    summary: Jejak audit stok / ledger append-only (admin, cursor)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    - $ref: ../components/parameters.yaml#/VariantId
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    responses:
+      '200':
+        description: Timeline movement (terbaru dulu)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/outlets.yaml#/StockMovement
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error

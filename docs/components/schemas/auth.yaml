@@ -1,0 +1,105 @@
+AuthResult:
+  type: object
+  properties:
+    token:
+      type: string
+      description: 'Kirim sebagai Authorization: Bearer <token>'
+    expiresAt:
+      type: string
+      format: date-time
+      description: 30 hari
+    user:
+      $ref: '#/User'
+User:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    email:
+      type: string
+      format: email
+    name:
+      type: string
+    phone:
+      type: string
+      nullable: true
+    avatar:
+      type: string
+      nullable: true
+    role:
+      type: string
+      enum:
+      - super_admin
+      - admin
+      - customer
+    status:
+      type: string
+      enum:
+      - active
+      - suspended
+    emailIsVerified:
+      type: boolean
+      nullable: true
+    phoneIsVerified:
+      type: boolean
+      nullable: true
+    notificationPref:
+      type: object
+      nullable: true
+      description: Preferensi notifikasi (bentuk NotificationPref); null bila belum diset
+    lastLoginAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+NotificationPref:
+  type: object
+  required:
+  - email
+  - whatsapp
+  - inAppPreference
+  properties:
+    email:
+      type: boolean
+    whatsapp:
+      type: boolean
+    inAppPreference:
+      type: object
+      required:
+      - push
+      - orderUpdate
+      - promo
+      properties:
+        push:
+          type: boolean
+        orderUpdate:
+          type: boolean
+        promo:
+          type: boolean
+Session:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    userAgent:
+      type: string
+      nullable: true
+    ipAddress:
+      type: string
+      nullable: true
+    lastActivityAt:
+      type: string
+      format: date-time
+    expiresAt:
+      type: string
+      format: date-time
+    createdAt:
+      type: string
+      format: date-time

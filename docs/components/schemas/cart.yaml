@@ -1,0 +1,109 @@
+Cart:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    userId:
+      type: string
+      format: uuid
+    outlet:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        city:
+          type: string
+          nullable: true
+        province:
+          type: string
+          nullable: true
+    items:
+      type: array
+      items:
+        $ref: '#/CartItem'
+    subtotal:
+      type: integer
+      description: sebelum diskon
+    discountTotal:
+      type: integer
+    total:
+      type: integer
+      description: subtotal - diskon (ongkir saat checkout)
+    allItemsAvailable:
+      type: boolean
+      nullable: true
+      description: null bila outlet belum dipilih
+    updatedAt:
+      type: string
+      format: date-time
+CartItem:
+  type: object
+  properties:
+    variantId:
+      type: integer
+    productId:
+      type: integer
+    productName:
+      type: string
+    variantName:
+      type: string
+      nullable: true
+    skuCode:
+      type: string
+    unitPrice:
+      type: integer
+      description: sebelum diskon
+    discountAmount:
+      type: integer
+    finalUnitPrice:
+      type: integer
+    quantity:
+      type: integer
+    lineTotal:
+      type: integer
+    isPurchasable:
+      type: boolean
+    availableStock:
+      type: integer
+      nullable: true
+      description: null bila outlet belum dipilih
+    isStockSufficient:
+      type: boolean
+      nullable: true
+OutletOption:
+  type: object
+  properties:
+    outletId:
+      type: integer
+    name:
+      type: string
+    code:
+      type: string
+    city:
+      type: string
+      nullable: true
+    province:
+      type: string
+      nullable: true
+    distanceKm:
+      type: number
+      nullable: true
+    isOnlineDefault:
+      type: boolean
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          variantId:
+            type: integer
+          requested:
+            type: integer
+          availableStock:
+            type: integer

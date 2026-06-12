@@ -1,0 +1,80 @@
+Cursor:
+  name: cursor
+  in: query
+  schema:
+    type: string
+  description: Dari `metadata.nextCursor` halaman sebelumnya
+Limit:
+  name: limit
+  in: query
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: true
+  schema:
+    type: string
+    maxLength: 100
+  description: String unik per percobaan (mis. uuid dari FE)
+IntId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: integer
+UuidId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+UserId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+PathUserId:
+  name: userId
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+ContactId:
+  name: contactId
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+ProductId:
+  name: productId
+  in: path
+  required: true
+  schema:
+    type: integer
+VariantId:
+  name: variantId
+  in: path
+  required: true
+  schema:
+    type: integer
+MediaId:
+  name: mediaId
+  in: path
+  required: true
+  schema:
+    type: integer
+Slug:
+  name: slug
+  in: path
+  required: true
+  schema:
+    type: string

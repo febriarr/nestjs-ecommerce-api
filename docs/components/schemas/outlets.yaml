@@ -1,0 +1,178 @@
+Outlet:
+  type: object
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    code:
+      type: string
+    street:
+      type: string
+      nullable: true
+    district:
+      type: string
+      nullable: true
+    city:
+      type: string
+      nullable: true
+    province:
+      type: string
+      nullable: true
+    postalCode:
+      type: string
+      nullable: true
+    phone:
+      type: string
+      nullable: true
+    email:
+      type: string
+      nullable: true
+    latitude:
+      type: string
+      nullable: true
+    longitude:
+      type: string
+      nullable: true
+    isActive:
+      type: boolean
+    servesOnline:
+      type: boolean
+      description: melayani order web
+    isOnlineDefault:
+      type: boolean
+      description: fallback routing online (maks. satu)
+    openingHours:
+      type: object
+      nullable: true
+      additionalProperties:
+        type: object
+        properties:
+          open:
+            type: string
+            example: 08:00
+          close:
+            type: string
+            example: '21:00'
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+OutletInput:
+  type: object
+  required:
+  - name
+  - code
+  properties:
+    name:
+      type: string
+      maxLength: 150
+    code:
+      type: string
+      maxLength: 30
+      description: unik; uppercase otomatis
+    street:
+      type: string
+    district:
+      type: string
+    city:
+      type: string
+    province:
+      type: string
+    postalCode:
+      type: string
+    phone:
+      type: string
+    email:
+      type: string
+      format: email
+    latitude:
+      type: string
+    longitude:
+      type: string
+    isActive:
+      type: boolean
+    servesOnline:
+      type: boolean
+    isOnlineDefault:
+      type: boolean
+    openingHours:
+      type: object
+Inventory:
+  type: object
+  properties:
+    outletId:
+      type: integer
+    variantId:
+      type: integer
+    skuCode:
+      type: string
+    variantName:
+      type: string
+      nullable: true
+    productName:
+      type: string
+    stock:
+      type: integer
+      description: stok fisik
+    reservedStock:
+      type: integer
+      description: ditahan order PENDING
+    availableStock:
+      type: integer
+      description: stock - reservedStock
+    updatedAt:
+      type: string
+      format: date-time
+StockMovement:
+  type: object
+  properties:
+    id:
+      type: integer
+    outletId:
+      type: integer
+    variantId:
+      type: integer
+    type:
+      type: string
+      enum:
+      - PURCHASE_RECEIPT
+      - ADJUSTMENT
+      - SALE
+      - RESERVE
+      - RELEASE
+      - TRANSFER_IN
+      - TRANSFER_OUT
+      - REFUND_RESTOCK
+    stockChange:
+      type: integer
+      description: delta stok fisik (bertanda)
+    reservedChange:
+      type: integer
+      description: delta reservedStock (bertanda)
+    stockAfter:
+      type: integer
+    reservedAfter:
+      type: integer
+    refType:
+      type: string
+      nullable: true
+      enum:
+      - order
+      - goods_receipt
+      - stock_transfer
+    refId:
+      type: string
+      nullable: true
+    actorId:
+      type: string
+      format: uuid
+      nullable: true
+    note:
+      type: string
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time

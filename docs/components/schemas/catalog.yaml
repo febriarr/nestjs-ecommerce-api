@@ -1,0 +1,259 @@
+Brand:
+  type: object
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    slug:
+      type: string
+    logoUrl:
+      type: string
+      nullable: true
+    isActive:
+      type: boolean
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+Category:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    slug:
+      type: string
+    description:
+      type: string
+      nullable: true
+    parentId:
+      type: string
+      format: uuid
+      nullable: true
+    imageUrl:
+      type: string
+      nullable: true
+    isActive:
+      type: boolean
+    sortOrder:
+      type: integer
+CategoryTree:
+  allOf:
+  - $ref: '#/Category'
+  - type: object
+    properties:
+      children:
+        type: array
+        items:
+          $ref: '#/CategoryTree'
+Attribute:
+  type: object
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    displayName:
+      type: string
+    type:
+      type: string
+      enum:
+      - color
+      - text
+      - number
+AttributeValue:
+  type: object
+  properties:
+    id:
+      type: integer
+    attributeId:
+      type: integer
+    value:
+      type: string
+    displayValue:
+      type: string
+      nullable: true
+    colorHex:
+      type: string
+      nullable: true
+    sortOrder:
+      type: integer
+    isActive:
+      type: boolean
+Product:
+  type: object
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    slug:
+      type: string
+    description:
+      type: string
+      nullable: true
+    shortDescription:
+      type: string
+      nullable: true
+    categoryId:
+      type: string
+      format: uuid
+    brandId:
+      type: integer
+      nullable: true
+    status:
+      type: string
+      enum:
+      - draft
+      - active
+      - inactive
+    thumbnailUrl:
+      type: string
+      nullable: true
+    minPrice:
+      type: integer
+      nullable: true
+      description: cache harga variant termurah
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+ProductAttribute:
+  type: object
+  properties:
+    id:
+      type: integer
+    productId:
+      type: integer
+    attributeId:
+      type: integer
+    isRequired:
+      type: boolean
+    sortOrder:
+      type: integer
+ProductMedia:
+  type: object
+  properties:
+    id:
+      type: integer
+    productId:
+      type: integer
+    imageUrl:
+      type: string
+    imageAlt:
+      type: string
+      nullable: true
+    sortOrder:
+      type: integer
+Variant:
+  type: object
+  properties:
+    id:
+      type: integer
+    productId:
+      type: integer
+    skuNumber:
+      type: integer
+      description: SKU publik numerik (auto)
+    skuCode:
+      type: string
+      description: SKU internal human-readable
+    variantName:
+      type: string
+      nullable: true
+    price:
+      type: integer
+      description: Rupiah penuh
+    compareAtPrice:
+      type: integer
+      nullable: true
+    totalStock:
+      type: integer
+      description: SUM available (stock - reserved) lintas outlet
+    weight:
+      type: integer
+      nullable: true
+      description: gram
+    isDefault:
+      type: boolean
+    status:
+      type: string
+      enum:
+      - active
+      - inactive
+    attributes:
+      type: array
+      items:
+        type: object
+        properties:
+          attributeId:
+            type: integer
+          attributeName:
+            type: string
+          attributeValueId:
+            type: integer
+          value:
+            type: string
+          displayValue:
+            type: string
+            nullable: true
+    media:
+      type: array
+      items:
+        type: object
+        properties:
+          mediaId:
+            type: integer
+          imageUrl:
+            type: string
+            nullable: true
+          imageAlt:
+            type: string
+            nullable: true
+          sortOrder:
+            type: integer
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+Discount:
+  type: object
+  properties:
+    id:
+      type: integer
+    productId:
+      type: integer
+    type:
+      type: string
+      enum:
+      - PERCENTAGE
+      - FIXED
+    percentage:
+      type: number
+      nullable: true
+    fixedAmount:
+      type: integer
+      nullable: true
+    maxDiscount:
+      type: integer
+      nullable: true
+    priority:
+      type: integer
+      description: besar menang saat overlap
+    startAt:
+      type: string
+      format: date-time
+    endAt:
+      type: string
+      format: date-time
+    isActive:
+      type: boolean

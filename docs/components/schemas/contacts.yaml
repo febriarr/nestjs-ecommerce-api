@@ -1,0 +1,102 @@
+Contact:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    userId:
+      type: string
+      format: uuid
+    label:
+      type: string
+      nullable: true
+    recipientName:
+      type: string
+    phone:
+      type: string
+    phoneAlt:
+      type: string
+      nullable: true
+    street:
+      type: string
+    district:
+      type: string
+    city:
+      type: string
+    province:
+      type: string
+    postalCode:
+      type: string
+    country:
+      type: string
+    latitude:
+      type: string
+      nullable: true
+    longitude:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    isPrimary:
+      type: boolean
+    isActive:
+      type: boolean
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+ContactInput:
+  type: object
+  required:
+  - recipientName
+  - phone
+  - street
+  - district
+  - city
+  - province
+  - postalCode
+  properties:
+    label:
+      type: string
+      maxLength: 50
+    recipientName:
+      type: string
+      maxLength: 100
+    phone:
+      type: string
+      maxLength: 20
+    phoneAlt:
+      type: string
+      maxLength: 20
+    street:
+      type: string
+    district:
+      type: string
+      description: kecamatan
+    city:
+      type: string
+    province:
+      type: string
+    postalCode:
+      type: string
+      maxLength: 10
+    country:
+      type: string
+      default: Indonesia
+    latitude:
+      type: string
+      example: '-6.9175000'
+    longitude:
+      type: string
+      example: '107.6191000'
+    notes:
+      type: string
+      maxLength: 255
+      description: catatan kurir
+    isPrimary:
+      type: boolean
+    isActive:
+      type: boolean

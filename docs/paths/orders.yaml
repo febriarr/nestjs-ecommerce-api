@@ -1,0 +1,182 @@
+orders-outlet-options:
+  get:
+    tags:
+    - Orders
+    summary: Outlet yang SANGGUP memenuhi seluruh isi cart (terurut rekomendasi)
+    description: 'Ranking: kota alamat kirim sama → provinsi → jarak haversine → isOnlineDefault. Array
+      kosong = tak ada yang sanggup.'
+    parameters:
+    - name: contactId
+      in: query
+      schema:
+        type: string
+        format: uuid
+      description: Alamat kirim untuk ranking kedekatan (opsional)
+    responses:
+      '200':
+        description: Daftar opsi outlet
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/cart.yaml#/OutletOption
+      default:
+        $ref: ../components/responses.yaml#/Error
+orders:
+  get:
+    tags:
+    - Orders
+    summary: Order milik user login (cursor)
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum:
+        - PENDING
+        - PAID
+        - CANCELLED
+        - EXPIRED
+        - REFUNDED
+    responses:
+      '200':
+        description: Daftar order
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/orders.yaml#/Order
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+orders-id:
+  get:
+    tags:
+    - Orders
+    summary: Detail order (pemilik/admin — bukan milik sendiri = 404)
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/OrderSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+orders-checkout:
+  post:
+    tags:
+    - Orders
+    summary: Checkout ONLINE dari cart (reservasi stok + invoice + auto-expire)
+    description: 'Header `Idempotency-Key` WAJIB (string unik per percobaan, mis. uuid) — retry/double
+
+      click dengan key sama mengembalikan order yang sama (bukan order baru); request kembar
+
+      yang masih diproses → 409 `IDEMPOTENCY_CONFLICT`.
+
+
+      Outlet dipilih otomatis (sanggup semua item → terdekat → default) atau override via
+
+      `outletId` (harus sanggup → selain itu 422 `ORDER_OUTLET_NOT_ELIGIBLE`).
+
+      Tidak ada outlet yang sanggup → 422 `ORDER_UNFULFILLABLE` dengan `details.items`
+
+      berisi `requested` vs `bestAvailable` per item. Stok keburu habis saat reservasi →
+
+      409 `ORDER_STOCK_RESERVATION_FAILED`. Order PENDING menahan stok (reservedStock)
+
+      sampai dibayar atau kedaluwarsa (`expiresAt`, default 30 menit).
+
+      '
+    parameters:
+    - $ref: ../components/parameters.yaml#/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - contactId
+            properties:
+              contactId:
+                type: string
+                format: uuid
+                description: Alamat kirim (user_contacts milik user)
+              outletId:
+                type: integer
+                description: override outlet manual
+              shippingFee:
+                type: integer
+                description: Rupiah; integrasi kurir belum ada (default 0)
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/OrderSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+orders-offline:
+  post:
+    tags:
+    - Orders
+    summary: Order OFFLINE / POS (admin — kasir); userId body = pelanggan
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - userId
+            - outletId
+            - items
+            properties:
+              userId:
+                type: string
+                format: uuid
+                description: pelanggan terdaftar
+              outletId:
+                type: integer
+                description: outlet tempat kasir
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - variantId
+                  - quantity
+                  properties:
+                    variantId:
+                      type: integer
+                    quantity:
+                      type: integer
+                      minimum: 1
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/OrderSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+orders-id-cancel:
+  post:
+    tags:
+    - Orders
+    summary: Batalkan order PENDING (pemilik/admin) — reservasi stok dilepas, invoice VOID
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/OrderSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

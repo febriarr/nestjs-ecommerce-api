@@ -1,0 +1,114 @@
+Payment:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    orderId:
+      type: string
+      format: uuid
+    provider:
+      type: string
+      example: dummy
+      description: dummy | cash
+    externalId:
+      type: string
+      nullable: true
+    paymentCode:
+      type: string
+      nullable: true
+      example: PAY-ORD-20260612-A1B2C3
+    amount:
+      type: integer
+    status:
+      type: string
+      enum:
+      - PENDING
+      - SUCCEEDED
+      - FAILED
+      - EXPIRED
+      - REFUNDED
+    instructions:
+      type: string
+      nullable: true
+      description: hanya saat inisiasi
+    paidAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+Invoice:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    invoiceNumber:
+      type: string
+      example: INV-20260612-A1B2C3
+    issueDate:
+      type: string
+      format: date-time
+    customerName:
+      type: string
+    customerEmail:
+      type: string
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          description:
+            type: string
+          quantity:
+            type: integer
+          unitPrice:
+            type: integer
+          lineTotal:
+            type: integer
+    subtotal:
+      type: integer
+    total:
+      type: integer
+    status:
+      type: string
+      enum:
+      - UNPAID
+      - PARTIALLY_PAID
+      - PAID
+      - OVERDUE
+      - VOID
+    amountPaid:
+      type: integer
+    amountDue:
+      type: integer
+    dueDate:
+      type: string
+      format: date-time
+      nullable: true
+    paidAt:
+      type: string
+      format: date-time
+      nullable: true
+    pdfUrl:
+      type: string
+      nullable: true
+    pdfStatus:
+      type: string
+      enum:
+      - PENDING
+      - PROCESSING
+      - READY
+      - FAILED
+    emailStatus:
+      type: string
+      enum:
+      - PENDING
+      - SENT
+      - FAILED
+    sentAt:
+      type: string
+      format: date-time
+      nullable: true

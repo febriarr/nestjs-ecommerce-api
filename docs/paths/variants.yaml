@@ -1,0 +1,166 @@
+products-productid-variants:
+  parameters:
+  - $ref: ../components/parameters.yaml#/ProductId
+  get:
+    tags:
+    - Variants
+    summary: Daftar variant produk (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar variant
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Variant
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Variants
+    summary: Buat variant (admin) — auto-declare attribute, skuCode auto/override
+    description: 'Role: admin/super_admin. Stok TIDAK di-set di sini — per-outlet via
+
+      `PUT /outlets/{id}/inventory/{variantId}`. minPrice produk di-recompute otomatis.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - price
+            - attributeValueIds
+            properties:
+              skuCode:
+                type: string
+                description: Override manual; kosong = auto BRAND-SLUG-VALUE
+              variantName:
+                type: string
+              price:
+                type: integer
+                description: Rupiah penuh
+              compareAtPrice:
+                type: integer
+              weight:
+                type: integer
+                description: gram
+              isDefault:
+                type: boolean
+              attributeValueIds:
+                type: array
+                items:
+                  type: integer
+              mediaIds:
+                type: array
+                items:
+                  type: integer
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/VariantSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-productid-variants-variantid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/ProductId
+  - $ref: ../components/parameters.yaml#/VariantId
+  get:
+    tags:
+    - Variants
+    summary: Detail variant (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/VariantSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Variants
+    summary: Update variant (admin) — kombinasi attribute tidak bisa diubah
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              skuCode:
+                type: string
+              variantName:
+                type: string
+              price:
+                type: integer
+              compareAtPrice:
+                type: integer
+              weight:
+                type: integer
+              isDefault:
+                type: boolean
+              status:
+                type: string
+                enum:
+                - active
+                - inactive
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/VariantSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Variants
+    summary: Soft delete variant (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-productid-variants-variantid-media:
+  post:
+    tags:
+    - Variants
+    summary: Link media produk ke variant (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+    - $ref: ../components/parameters.yaml#/VariantId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - mediaId
+            properties:
+              mediaId:
+                type: integer
+              sortOrder:
+                type: integer
+    responses:
+      '201':
+        description: Ter-link
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-productid-variants-variantid-media-mediaid:
+  delete:
+    tags:
+    - Variants
+    summary: Lepas link media dari variant (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+    - $ref: ../components/parameters.yaml#/VariantId
+    - $ref: ../components/parameters.yaml#/MediaId
+    responses:
+      '200':
+        description: Terlepas
+      default:
+        $ref: ../components/responses.yaml#/Error

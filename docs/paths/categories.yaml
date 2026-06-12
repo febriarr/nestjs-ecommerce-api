@@ -1,0 +1,144 @@
+categories:
+  get:
+    tags:
+    - Categories
+    summary: Daftar kategori flat (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar kategori
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Category
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Categories
+    summary: Buat kategori (admin) — multipart, gambar opsional
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+            - name
+            - slug
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              description:
+                type: string
+              parentId:
+                type: string
+                format: uuid
+              isActive:
+                type: boolean
+              sortOrder:
+                type: integer
+              image:
+                type: string
+                format: binary
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/CategorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+categories-tree:
+  get:
+    tags:
+    - Categories
+    summary: Pohon kategori parent→children (publik)
+    security: []
+    responses:
+      '200':
+        description: Tree
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/CategoryTree
+      default:
+        $ref: ../components/responses.yaml#/Error
+categories-slug-slug:
+  get:
+    tags:
+    - Categories
+    summary: Detail kategori by slug (publik)
+    security: []
+    parameters:
+    - $ref: ../components/parameters.yaml#/Slug
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CategorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+categories-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/UuidId
+  get:
+    tags:
+    - Categories
+    summary: Detail kategori (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CategorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Categories
+    summary: Update kategori (admin) — multipart, gambar opsional
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              description:
+                type: string
+              parentId:
+                type: string
+                format: uuid
+              isActive:
+                type: boolean
+              sortOrder:
+                type: integer
+              image:
+                type: string
+                format: binary
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CategorySingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Categories
+    summary: Soft delete kategori (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error

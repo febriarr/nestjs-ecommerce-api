@@ -1,0 +1,370 @@
+products:
+  get:
+    tags:
+    - Products
+    summary: Daftar produk (publik, cursor + filter)
+    security: []
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum:
+        - draft
+        - active
+        - inactive
+    - name: categoryId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    - name: brandId
+      in: query
+      schema:
+        type: integer
+    - name: minPrice
+      in: query
+      schema:
+        type: integer
+        description: Rupiah penuh
+    - name: maxPrice
+      in: query
+      schema:
+        type: integer
+    - name: search
+      in: query
+      schema:
+        type: string
+    responses:
+      '200':
+        description: Daftar produk
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Product
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Products
+    summary: Buat produk (admin) — step 1 wizard; thumbnail opsional
+    description: 'Role: admin/super_admin. Pembuat dicatat dari user login. Lanjutkan dengan membuat variant.'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+            - name
+            - slug
+            - categoryId
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              description:
+                type: string
+              shortDescription:
+                type: string
+              categoryId:
+                type: string
+                format: uuid
+              brandId:
+                type: integer
+              status:
+                type: string
+                enum:
+                - draft
+                - active
+                - inactive
+              thumbnail:
+                type: string
+                format: binary
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/ProductSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-slug-slug:
+  get:
+    tags:
+    - Products
+    summary: Detail produk by slug (publik)
+    security: []
+    parameters:
+    - $ref: ../components/parameters.yaml#/Slug
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ProductSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Products
+    summary: Detail produk (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ProductSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Products
+    summary: Update produk (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              description:
+                type: string
+              shortDescription:
+                type: string
+              categoryId:
+                type: string
+                format: uuid
+              brandId:
+                type: integer
+              status:
+                type: string
+                enum:
+                - draft
+                - active
+                - inactive
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ProductSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Products
+    summary: Soft delete produk (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-attributes:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Products
+    summary: Attribute yang dipakai produk (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar product attribute
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/ProductAttribute
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Products
+    summary: Deklarasi attribute ke produk (admin; variant create juga auto-declare)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - attributeId
+            properties:
+              attributeId:
+                type: integer
+              isRequired:
+                type: boolean
+              sortOrder:
+                type: integer
+    responses:
+      '201':
+        description: Terdeklarasi
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/catalog.yaml#/ProductAttribute
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-attributes-attributeid:
+  delete:
+    tags:
+    - Products
+    summary: Hapus deklarasi attribute (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    - name: attributeId
+      in: path
+      required: true
+      schema:
+        type: integer
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-media:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Products
+    summary: Media library produk (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar media
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/ProductMedia
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Products
+    summary: Upload gambar produk (admin) — dikonversi WebP
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+            - image
+            properties:
+              image:
+                type: string
+                format: binary
+              imageAlt:
+                type: string
+              sortOrder:
+                type: integer
+    responses:
+      '201':
+        description: Media terbuat
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/catalog.yaml#/ProductMedia
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-media-reorder:
+  patch:
+    tags:
+    - Products
+    summary: Atur ulang urutan media (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - items
+            properties:
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - mediaId
+                  - sortOrder
+                  properties:
+                    mediaId:
+                      type: integer
+                    sortOrder:
+                      type: integer
+    responses:
+      '200':
+        description: Urutan tersimpan
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-media-mediaid:
+  delete:
+    tags:
+    - Products
+    summary: Hapus media (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    - $ref: ../components/parameters.yaml#/MediaId
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-id-thumbnail:
+  patch:
+    tags:
+    - Products
+    summary: Set thumbnail dari media existing (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/IntId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - mediaId
+            properties:
+              mediaId:
+                type: integer
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ProductSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

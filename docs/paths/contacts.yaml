@@ -1,0 +1,87 @@
+users-userid-contacts:
+  parameters:
+  - $ref: ../components/parameters.yaml#/PathUserId
+  get:
+    tags:
+    - Contacts
+    summary: Daftar alamat user (pemilik/admin) — primary di urutan pertama
+    responses:
+      '200':
+        description: Daftar alamat
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/contacts.yaml#/Contact
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Contacts
+    summary: Tambah alamat (alamat pertama otomatis primary)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/contacts.yaml#/ContactInput
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/ContactSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+users-userid-contacts-contactid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/PathUserId
+  - $ref: ../components/parameters.yaml#/ContactId
+  get:
+    tags:
+    - Contacts
+    summary: Detail alamat
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ContactSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Contacts
+    summary: Update alamat
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/contacts.yaml#/ContactInput
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ContactSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Contacts
+    summary: Hapus alamat (soft delete, status primary dilepas)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+users-userid-contacts-contactid-primary:
+  put:
+    tags:
+    - Contacts
+    summary: Jadikan alamat default pengiriman (primary lama di-unset)
+    parameters:
+    - $ref: ../components/parameters.yaml#/PathUserId
+    - $ref: ../components/parameters.yaml#/ContactId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/ContactSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

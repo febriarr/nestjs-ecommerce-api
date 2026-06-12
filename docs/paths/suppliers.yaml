@@ -1,0 +1,85 @@
+suppliers:
+  get:
+    tags:
+    - Suppliers
+    summary: Daftar supplier (admin, cursor)
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: isActive
+      in: query
+      schema:
+        type: boolean
+    - name: search
+      in: query
+      schema:
+        type: string
+        description: nama/kode
+    responses:
+      '200':
+        description: Daftar supplier
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/purchasing.yaml#/Supplier
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Suppliers
+    summary: Buat supplier (admin)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/purchasing.yaml#/SupplierInput
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/SupplierSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+suppliers-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Suppliers
+    summary: Detail supplier (admin)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/SupplierSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Suppliers
+    summary: Update supplier (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/purchasing.yaml#/SupplierInput
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/SupplierSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Suppliers
+    summary: Soft delete supplier (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error

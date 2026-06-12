@@ -1,0 +1,41 @@
+ErrorResponse:
+  type: object
+  properties:
+    ok:
+      type: boolean
+      example: false
+    error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: ORDER_UNFULFILLABLE
+        category:
+          type: string
+          example: ORDER
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+        fields:
+          type: object
+          nullable: true
+        requestId:
+          type: string
+          nullable: true
+    path:
+      type: string
+    timestamp:
+      type: string
+      format: date-time
+CursorMeta:
+  type: object
+  properties:
+    limit:
+      type: integer
+    hasNextPage:
+      type: boolean
+    nextCursor:
+      type: string
+      nullable: true

@@ -1,0 +1,331 @@
+purchase-orders:
+  get:
+    tags:
+    - Purchase Orders
+    summary: Daftar PO (admin, cursor + filter)
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum:
+        - DRAFT
+        - ORDERED
+        - PARTIALLY_RECEIVED
+        - RECEIVED
+        - CANCELLED
+    - name: supplierId
+      in: query
+      schema:
+        type: integer
+    - name: outletId
+      in: query
+      schema:
+        type: integer
+    responses:
+      '200':
+        description: Daftar PO
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/purchasing.yaml#/PurchaseOrder
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Purchase Orders
+    summary: Buat PO DRAFT (admin) — pembuat dari user login; item boleh inline
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - supplierId
+            - outletId
+            properties:
+              supplierId:
+                type: integer
+              outletId:
+                type: integer
+                description: outlet tujuan penerimaan
+              expectedAt:
+                type: string
+                format: date-time
+              notes:
+                type: string
+                maxLength: 500
+              items:
+                type: array
+                items:
+                  $ref: ../components/schemas/purchasing.yaml#/PoItemInput
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-quick-receive:
+  post:
+    tags:
+    - Purchase Orders
+    summary: '"Barang Masuk" 1 langkah: PO (langsung RECEIVED) + GRN + stok dalam SATU transaksi (admin)'
+    description: 'Untuk UMKM yang belanja tanpa memesan dulu. qty datang = qty dipesan;
+
+      penerima (= createdBy PO & receivedBy GRN) dari user login.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - supplierId
+            - outletId
+            - items
+            properties:
+              supplierId:
+                type: integer
+              outletId:
+                type: integer
+              notes:
+                type: string
+                maxLength: 500
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - variantId
+                  - quantity
+                  - unitCost
+                  properties:
+                    variantId:
+                      type: integer
+                    quantity:
+                      type: integer
+                      minimum: 1
+                    unitCost:
+                      type: integer
+                      description: harga beli satuan (Rupiah)
+    responses:
+      '201':
+        description: PO + GRN terbuat sekaligus
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    purchaseOrder:
+                      $ref: ../components/schemas/purchasing.yaml#/PurchaseOrder
+                    receipt:
+                      $ref: ../components/schemas/purchasing.yaml#/GoodsReceipt
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/UuidId
+  get:
+    tags:
+    - Purchase Orders
+    summary: Detail PO + item + progres penerimaan (admin)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Purchase Orders
+    summary: Update header PO (admin, hanya DRAFT)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              supplierId:
+                type: integer
+              outletId:
+                type: integer
+              expectedAt:
+                type: string
+                format: date-time
+              notes:
+                type: string
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id-submit:
+  post:
+    tags:
+    - Purchase Orders
+    summary: 'DRAFT → ORDERED: PO terkunci, siap dikirim ke supplier (admin)'
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id-cancel:
+  post:
+    tags:
+    - Purchase Orders
+    summary: Batalkan PO (admin) — hanya selama belum ada penerimaan
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id-items:
+  post:
+    tags:
+    - Purchase Orders
+    summary: Tambah item PO (admin, hanya DRAFT; variant unik per PO)
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/purchasing.yaml#/PoItemInput
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id-items-itemid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/UuidId
+  - name: itemId
+    in: path
+    required: true
+    schema:
+      type: integer
+  patch:
+    tags:
+    - Purchase Orders
+    summary: Update item PO (admin, hanya DRAFT)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              qtyOrdered:
+                type: integer
+                minimum: 1
+              unitCost:
+                type: integer
+                minimum: 0
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Purchase Orders
+    summary: Hapus item PO (admin, hanya DRAFT)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PoSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+purchase-orders-id-receipts:
+  parameters:
+  - $ref: ../components/parameters.yaml#/UuidId
+  get:
+    tags:
+    - Purchase Orders
+    summary: Riwayat penerimaan (GRN) sebuah PO (admin)
+    responses:
+      '200':
+        description: Daftar GRN
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/purchasing.yaml#/GoodsReceipt
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Purchase Orders
+    summary: Terima barang / buat GRN (admin) — parsial & berulang, satu transaksi
+    description: 'PO harus ORDERED/PARTIALLY_RECEIVED. Stok outlet naik + ledger PURCHASE_RECEIPT
+
+      per item; status PO ter-recompute otomatis. Qty melebihi sisa pesanan DITERIMA
+
+      dan ditandai `overReceived` per item. Penerima = user login.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - items
+            properties:
+              notes:
+                type: string
+                maxLength: 500
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - poItemId
+                  - qtyReceived
+                  properties:
+                    poItemId:
+                      type: integer
+                    qtyReceived:
+                      type: integer
+                      minimum: 1
+    responses:
+      '201':
+        description: GRN terbuat
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/purchasing.yaml#/GoodsReceipt
+      default:
+        $ref: ../components/responses.yaml#/Error

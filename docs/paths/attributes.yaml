@@ -1,0 +1,212 @@
+attributes:
+  get:
+    tags:
+    - Attributes
+    summary: Daftar attribute (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar attribute
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Attribute
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Attributes
+    summary: Buat attribute (admin)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - name
+            - displayName
+            - type
+            properties:
+              name:
+                type: string
+              displayName:
+                type: string
+              type:
+                type: string
+                enum:
+                - color
+                - text
+                - number
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/AttributeSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+attributes-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Attributes
+    summary: Detail attribute (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/AttributeSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Attributes
+    summary: Update attribute (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              displayName:
+                type: string
+              type:
+                type: string
+                enum:
+                - color
+                - text
+                - number
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/AttributeSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Attributes
+    summary: Soft delete attribute (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+attributes-id-values:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Attributes
+    summary: Daftar value sebuah attribute (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar value
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/AttributeValue
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Attributes
+    summary: Tambah value (admin)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - value
+            properties:
+              value:
+                type: string
+              displayValue:
+                type: string
+              colorHex:
+                type: string
+                example: '#FF0000'
+              sortOrder:
+                type: integer
+              isActive:
+                type: boolean
+    responses:
+      '201':
+        description: Value terbuat
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/catalog.yaml#/AttributeValue
+      default:
+        $ref: ../components/responses.yaml#/Error
+attributes-id-values-valueid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  - name: valueId
+    in: path
+    required: true
+    schema:
+      type: integer
+  patch:
+    tags:
+    - Attributes
+    summary: Update value (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              value:
+                type: string
+              displayValue:
+                type: string
+              colorHex:
+                type: string
+              sortOrder:
+                type: integer
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        description: Value terupdate
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/catalog.yaml#/AttributeValue
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Attributes
+    summary: Soft delete value (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error

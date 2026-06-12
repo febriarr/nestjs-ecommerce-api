@@ -1,0 +1,185 @@
+auth-register:
+  post:
+    tags:
+    - Auth
+    summary: Registrasi publik (selalu role customer) + langsung login
+    description: Publik. Rate limit 5/menit. `role` sengaja tidak diterima (anti eskalasi).
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - email
+            - name
+            - password
+            properties:
+              email:
+                type: string
+                format: email
+              name:
+                type: string
+                maxLength: 255
+              password:
+                type: string
+                minLength: 8
+              phone:
+                type: string
+                maxLength: 20
+    responses:
+      '201':
+        description: Akun terbuat + sesi terbit
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/auth.yaml#/AuthResult
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-login:
+  post:
+    tags:
+    - Auth
+    summary: Login email + password
+    description: 'Publik. Rate limit 10/menit. Semua kegagalan (email tak terdaftar, akun OAuth-only,
+
+      password salah) mengembalikan 401 `AUTH_INVALID_CREDENTIALS` dengan pesan identik
+
+      (anti enumerasi email). Akun suspended → 403 `USER_SUSPENDED`.
+
+      '
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - email
+            - password
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+    responses:
+      '200':
+        description: Sesi terbit
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/auth.yaml#/AuthResult
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-google:
+  post:
+    tags:
+    - Auth
+    summary: Login Google (GIS)
+    description: 'Publik. Rate limit 10/menit. `credential` = ID token JWT dari Google Identity Services;
+
+      diverifikasi server-side (signature/issuer/expiry/audience = GOOGLE_CLIENT_ID).
+
+      User di-upsert by email; akun baru terdaftar tanpa password (OAuth-only).
+
+      '
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - credential
+            properties:
+              credential:
+                type: string
+                description: ID token dari GIS
+    responses:
+      '200':
+        description: Sesi terbit
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/auth.yaml#/AuthResult
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-logout:
+  post:
+    tags:
+    - Auth
+    summary: Logout sesi ini
+    responses:
+      '200':
+        description: Sesi dicabut
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-logout-all:
+  post:
+    tags:
+    - Auth
+    summary: Logout seluruh perangkat
+    responses:
+      '200':
+        description: Semua sesi dicabut
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-me:
+  get:
+    tags:
+    - Auth
+    summary: Profil user yang sedang login
+    responses:
+      '200':
+        description: Profil
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  $ref: ../components/schemas/auth.yaml#/User
+      default:
+        $ref: ../components/responses.yaml#/Error
+auth-sessions:
+  get:
+    tags:
+    - Auth
+    summary: Daftar sesi aktif user (token tidak pernah diekspos)
+    responses:
+      '200':
+        description: Daftar sesi
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/auth.yaml#/Session
+      default:
+        $ref: ../components/responses.yaml#/Error

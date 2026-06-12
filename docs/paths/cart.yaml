@@ -1,0 +1,105 @@
+cart:
+  get:
+    tags:
+    - Cart
+    summary: Cart user login (dibuat otomatis bila belum ada)
+    description: Response selalu memuat validasi stok per item terhadap outlet terpilih.
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+cart-outlet:
+  put:
+    tags:
+    - Cart
+    summary: Pilih/ganti outlet — seluruh item ter-revalidasi stok
+    description: 'Outlet harus aktif + servesOnline. Item yang stoknya kurang TIDAK dihapus,
+
+      hanya ditandai `isStockSufficient: false`.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - outletId
+            properties:
+              outletId:
+                type: integer
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+cart-items:
+  post:
+    tags:
+    - Cart
+    summary: Tambah item (qty diakumulasi bila sudah ada)
+    description: Bila outlet sudah dipilih dan qty melebihi available → 422 `CART_STOCK_INSUFFICIENT`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - variantId
+            - quantity
+            properties:
+              variantId:
+                type: integer
+              quantity:
+                type: integer
+                minimum: 1
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Cart
+    summary: Kosongkan cart
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+cart-items-variantid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/VariantId
+  patch:
+    tags:
+    - Cart
+    summary: Set qty absolut sebuah item
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - quantity
+            properties:
+              quantity:
+                type: integer
+                minimum: 1
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Cart
+    summary: Hapus satu item
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/CartSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

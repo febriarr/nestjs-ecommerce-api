@@ -1,0 +1,130 @@
+invoices:
+  post:
+    tags:
+    - Invoices
+    summary: Buat invoice manual (admin) — checkout membuat invoice otomatis
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - customerName
+            - customerEmail
+            - items
+            properties:
+              invoiceNumber:
+                type: string
+                description: kosong = auto INV-YYYYMMDD-XXXXXX
+              customerName:
+                type: string
+              customerEmail:
+                type: string
+                format: email
+              issueDate:
+                type: string
+                format: date-time
+              dueDate:
+                type: string
+                format: date-time
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - description
+                  - quantity
+                  - unitPrice
+                  properties:
+                    description:
+                      type: string
+                    quantity:
+                      type: integer
+                      minimum: 1
+                    unitPrice:
+                      type: integer
+                      description: Rupiah penuh
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/InvoiceSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+invoices-id:
+  get:
+    tags:
+    - Invoices
+    summary: Detail invoice (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/InvoiceSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+invoices-id-status:
+  patch:
+    tags:
+    - Invoices
+    summary: Ubah status pembayaran invoice (admin) — transisi tervalidasi
+    description: 'PAID/PARTIALLY_PAID memicu pipeline PDF + email. Webhook payment & pay-cash
+
+      memanggil transisi ini otomatis — endpoint ini untuk koreksi manual/DP offline.
+
+      '
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - status
+            properties:
+              status:
+                type: string
+                enum:
+                - UNPAID
+                - PARTIALLY_PAID
+                - PAID
+                - OVERDUE
+                - VOID
+              amountPaid:
+                type: integer
+                description: wajib utk PARTIALLY_PAID
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/InvoiceSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+invoices-id-send:
+  post:
+    tags:
+    - Invoices
+    summary: Kirim ulang invoice via email — pipeline PDF + email di-enqueue (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '202':
+        $ref: ../components/responses.yaml#/InvoiceSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+invoices-id-pdf-download:
+  get:
+    tags:
+    - Invoices
+    summary: Unduh PDF invoice (admin) — generate on-the-fly bila belum ada
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        description: File PDF
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      default:
+        $ref: ../components/responses.yaml#/Error

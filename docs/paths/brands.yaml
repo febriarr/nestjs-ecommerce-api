@@ -1,0 +1,108 @@
+brands:
+  get:
+    tags:
+    - Brands
+    summary: Daftar brand (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar brand
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Brand
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Brands
+    summary: Buat brand (admin) — multipart, logo opsional
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+            - name
+            - slug
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              isActive:
+                type: boolean
+              logo:
+                type: string
+                format: binary
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/BrandSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+brands-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/IntId
+  get:
+    tags:
+    - Brands
+    summary: Detail brand (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/BrandSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Brands
+    summary: Update brand (admin) — multipart, logo opsional
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              isActive:
+                type: boolean
+              logo:
+                type: string
+                format: binary
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/BrandSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Brands
+    summary: Soft delete brand (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error
+brands-slug-slug:
+  get:
+    tags:
+    - Brands
+    summary: Detail brand by slug (publik)
+    security: []
+    parameters:
+    - $ref: ../components/parameters.yaml#/Slug
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/BrandSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

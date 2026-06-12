@@ -1,0 +1,160 @@
+stock-transfers:
+  get:
+    tags:
+    - Stock Transfers
+    summary: Daftar transfer antar outlet (admin, cursor)
+    parameters:
+    - $ref: ../components/parameters.yaml#/Cursor
+    - $ref: ../components/parameters.yaml#/Limit
+    - name: status
+      in: query
+      schema:
+        type: string
+        enum:
+        - DRAFT
+        - SENT
+        - RECEIVED
+        - CANCELLED
+    - name: outletId
+      in: query
+      schema:
+        type: integer
+        description: outlet asal ATAU tujuan
+    responses:
+      '200':
+        description: Daftar transfer
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/purchasing.yaml#/StockTransfer
+                metadata:
+                  $ref: ../components/schemas/common.yaml#/CursorMeta
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Stock Transfers
+    summary: Buat transfer DRAFT (admin) — pembuat dari user login
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - fromOutletId
+            - toOutletId
+            - items
+            properties:
+              fromOutletId:
+                type: integer
+              toOutletId:
+                type: integer
+                description: harus beda dari asal
+              notes:
+                type: string
+                maxLength: 500
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - variantId
+                  - quantity
+                  properties:
+                    variantId:
+                      type: integer
+                    quantity:
+                      type: integer
+                      minimum: 1
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+stock-transfers-id:
+  parameters:
+  - $ref: ../components/parameters.yaml#/UuidId
+  get:
+    tags:
+    - Stock Transfers
+    summary: Detail transfer (admin)
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Stock Transfers
+    summary: Update notes/items (admin, hanya DRAFT; items MENGGANTI seluruh daftar)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              notes:
+                type: string
+              items:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - variantId
+                  - quantity
+                  properties:
+                    variantId:
+                      type: integer
+                    quantity:
+                      type: integer
+                      minimum: 1
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+stock-transfers-id-send:
+  post:
+    tags:
+    - Stock Transfers
+    summary: 'DRAFT → SENT: stok keluar dari outlet asal — in transit (admin)'
+    description: Available tidak cukup di satu item pun → rollback + 422 `TRANSFER_STOCK_INSUFFICIENT`.
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+stock-transfers-id-receive:
+  post:
+    tags:
+    - Stock Transfers
+    summary: 'SENT → RECEIVED: stok masuk ke outlet tujuan (admin)'
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+stock-transfers-id-cancel:
+  post:
+    tags:
+    - Stock Transfers
+    summary: Batalkan transfer (admin, hanya DRAFT)
+    parameters:
+    - $ref: ../components/parameters.yaml#/UuidId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/TransferSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

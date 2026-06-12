@@ -1,0 +1,92 @@
+Order:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    orderNumber:
+      type: string
+      example: ORD-20260612-A1B2C3
+    userId:
+      type: string
+      format: uuid
+    outletId:
+      type: integer
+    outletName:
+      type: string
+      nullable: true
+    channel:
+      type: string
+      enum:
+      - ONLINE
+      - OFFLINE
+    status:
+      type: string
+      enum:
+      - PENDING
+      - PAID
+      - CANCELLED
+      - EXPIRED
+      - REFUNDED
+    invoiceId:
+      type: string
+      format: uuid
+      nullable: true
+    shippingAddress:
+      type: object
+      nullable: true
+      description: Snapshot alamat saat checkout (null utk OFFLINE)
+    subtotal:
+      type: integer
+    discountTotal:
+      type: integer
+    shippingFee:
+      type: integer
+    total:
+      type: integer
+    items:
+      type: array
+      items:
+        $ref: '#/OrderItem'
+    expiresAt:
+      type: string
+      format: date-time
+      nullable: true
+      description: batas bayar
+    paidAt:
+      type: string
+      format: date-time
+      nullable: true
+    cancelledAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+OrderItem:
+  type: object
+  properties:
+    variantId:
+      type: integer
+    productId:
+      type: integer
+    productName:
+      type: string
+    variantName:
+      type: string
+      nullable: true
+    skuCode:
+      type: string
+    unitPrice:
+      type: integer
+      description: setelah diskon (snapshot)
+    discountAmount:
+      type: integer
+    quantity:
+      type: integer
+    lineTotal:
+      type: integer

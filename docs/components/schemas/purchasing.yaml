@@ -1,0 +1,241 @@
+Supplier:
+  type: object
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    code:
+      type: string
+    contactName:
+      type: string
+      nullable: true
+    phone:
+      type: string
+      nullable: true
+    email:
+      type: string
+      nullable: true
+    address:
+      type: string
+      nullable: true
+    isActive:
+      type: boolean
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+SupplierInput:
+  type: object
+  required:
+  - name
+  - code
+  properties:
+    name:
+      type: string
+      maxLength: 150
+    code:
+      type: string
+      maxLength: 30
+    contactName:
+      type: string
+    phone:
+      type: string
+    email:
+      type: string
+      format: email
+    address:
+      type: string
+    isActive:
+      type: boolean
+PoItemInput:
+  type: object
+  required:
+  - variantId
+  - qtyOrdered
+  - unitCost
+  properties:
+    variantId:
+      type: integer
+    qtyOrdered:
+      type: integer
+      minimum: 1
+    unitCost:
+      type: integer
+      minimum: 0
+      description: harga beli satuan (Rupiah)
+PurchaseOrder:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    poNumber:
+      type: string
+      example: PO-20260612-A1B2C3
+    supplierId:
+      type: integer
+    supplierName:
+      type: string
+      nullable: true
+    outletId:
+      type: integer
+    outletName:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum:
+      - DRAFT
+      - ORDERED
+      - PARTIALLY_RECEIVED
+      - RECEIVED
+      - CANCELLED
+    expectedAt:
+      type: string
+      format: date-time
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    createdBy:
+      type: string
+      format: uuid
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+          variantId:
+            type: integer
+          skuCode:
+            type: string
+          variantName:
+            type: string
+            nullable: true
+          productName:
+            type: string
+          qtyOrdered:
+            type: integer
+          unitCost:
+            type: integer
+          lineTotal:
+            type: integer
+          qtyReceived:
+            type: integer
+          remaining:
+            type: integer
+            description: sisa belum diterima (0 bila penuh)
+    subtotal:
+      type: integer
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+GoodsReceipt:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    receiptNumber:
+      type: string
+      example: GRN-20260612-A1B2C3
+    poId:
+      type: string
+      format: uuid
+    outletId:
+      type: integer
+    receivedBy:
+      type: string
+      format: uuid
+    notes:
+      type: string
+      nullable: true
+    receivedAt:
+      type: string
+      format: date-time
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          poItemId:
+            type: integer
+          variantId:
+            type: integer
+          qtyReceived:
+            type: integer
+          unitCost:
+            type: integer
+          overReceived:
+            type: boolean
+            description: melebihi sisa pesanan saat diterima
+StockTransfer:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    transferNumber:
+      type: string
+      example: TRF-20260612-A1B2C3
+    fromOutletId:
+      type: integer
+    fromOutletName:
+      type: string
+      nullable: true
+    toOutletId:
+      type: integer
+    toOutletName:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum:
+      - DRAFT
+      - SENT
+      - RECEIVED
+      - CANCELLED
+    notes:
+      type: string
+      nullable: true
+    createdBy:
+      type: string
+      format: uuid
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          variantId:
+            type: integer
+          skuCode:
+            type: string
+          variantName:
+            type: string
+            nullable: true
+          productName:
+            type: string
+          quantity:
+            type: integer
+    sentAt:
+      type: string
+      format: date-time
+      nullable: true
+    receivedAt:
+      type: string
+      format: date-time
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

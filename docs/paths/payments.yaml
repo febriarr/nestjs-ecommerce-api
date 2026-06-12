@@ -1,0 +1,142 @@
+payments-initiate:
+  post:
+    tags:
+    - Payments
+    summary: Inisiasi pembayaran order PENDING (pemilik/admin) — idempoten
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - orderId
+            properties:
+              orderId:
+                type: string
+                format: uuid
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/PaymentSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+payments-cash:
+  post:
+    tags:
+    - Payments
+    summary: Pembayaran tunai di kasir / POS (admin) — order langsung PAID
+    description: 'Role: admin/super_admin. Finalisasi stok + invoice PAID (pipeline PDF + email jalan).
+
+      Attempt gateway yang masih PENDING ditandai FAILED. Idempoten.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - orderId
+            properties:
+              orderId:
+                type: string
+                format: uuid
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/PaymentSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+payments-refund:
+  post:
+    tags:
+    - Payments
+    summary: Refund penuh order PAID (admin)
+    description: 'Role: admin/super_admin. Order → REFUNDED; `restock: true` (default) mengembalikan
+
+      item ke stok outlet (ledger REFUND_RESTOCK ber-aktor & alasan); payment → REFUNDED.
+
+      Pengembalian dana dilakukan di luar sistem — endpoint ini mencatat jejaknya.
+
+      Invoice sengaja tetap PAID (dokumen historis). Idempoten.
+
+      '
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - orderId
+            properties:
+              orderId:
+                type: string
+                format: uuid
+              restock:
+                type: boolean
+                default: true
+                description: false utk barang rusak
+              reason:
+                type: string
+                maxLength: 255
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/OrderSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+payments-webhook-provider:
+  post:
+    tags:
+    - Payments
+    summary: Webhook payment gateway (publik; verifikasi HMAC, bukan sesi)
+    description: 'Rate limit 30/menit. Provider saat ini: `dummy`. Signature = HMAC-SHA256 hex atas
+
+      string `orderId:status:amount` dengan secret `PAYMENT_WEBHOOK_SECRET`.
+
+      SUCCEEDED → order PAID + finalisasi stok + invoice PAID (PDF + email).
+
+      Retry webhook aman (idempoten). Signature salah → 401 `PAYMENT_SIGNATURE_INVALID`;
+
+      nominal ≠ total order → 422 `PAYMENT_AMOUNT_MISMATCH`.
+
+      '
+    security: []
+    parameters:
+    - name: provider
+      in: path
+      required: true
+      schema:
+        type: string
+        example: dummy
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - orderId
+            - status
+            - amount
+            - signature
+            properties:
+              orderId:
+                type: string
+                format: uuid
+              status:
+                type: string
+                enum:
+                - SUCCEEDED
+                - FAILED
+              amount:
+                type: integer
+                description: harus = total order
+              signature:
+                type: string
+                description: HMAC-SHA256 hex
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/PaymentSingle
+      default:
+        $ref: ../components/responses.yaml#/Error

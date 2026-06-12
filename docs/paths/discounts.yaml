@@ -1,0 +1,130 @@
+products-productid-discounts:
+  parameters:
+  - $ref: ../components/parameters.yaml#/ProductId
+  get:
+    tags:
+    - Discounts
+    summary: Daftar promo produk (publik)
+    security: []
+    responses:
+      '200':
+        description: Daftar promo
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/catalog.yaml#/Discount
+      default:
+        $ref: ../components/responses.yaml#/Error
+  post:
+    tags:
+    - Discounts
+    summary: Buat promo terjadwal (admin) — overlap diresolusi by priority
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - type
+            - startAt
+            - endAt
+            properties:
+              type:
+                type: string
+                enum:
+                - PERCENTAGE
+                - FIXED
+              percentage:
+                type: number
+                description: wajib utk PERCENTAGE
+              fixedAmount:
+                type: integer
+                description: wajib utk FIXED (Rupiah)
+              maxDiscount:
+                type: integer
+              priority:
+                type: integer
+              startAt:
+                type: string
+                format: date-time
+              endAt:
+                type: string
+                format: date-time
+              isActive:
+                type: boolean
+    responses:
+      '201':
+        $ref: ../components/responses.yaml#/DiscountSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-productid-discounts-discountid:
+  parameters:
+  - $ref: ../components/parameters.yaml#/ProductId
+  - name: discountId
+    in: path
+    required: true
+    schema:
+      type: integer
+  get:
+    tags:
+    - Discounts
+    summary: Detail promo (publik)
+    security: []
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/DiscountSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  patch:
+    tags:
+    - Discounts
+    summary: Update promo (admin)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                - PERCENTAGE
+                - FIXED
+              percentage:
+                type: number
+              fixedAmount:
+                type: integer
+              maxDiscount:
+                type: integer
+              priority:
+                type: integer
+              startAt:
+                type: string
+                format: date-time
+              endAt:
+                type: string
+                format: date-time
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/DiscountSingle
+      default:
+        $ref: ../components/responses.yaml#/Error
+  delete:
+    tags:
+    - Discounts
+    summary: Hapus promo (admin)
+    responses:
+      '200':
+        description: Terhapus
+      default:
+        $ref: ../components/responses.yaml#/Error

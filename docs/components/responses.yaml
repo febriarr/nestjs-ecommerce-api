@@ -1,0 +1,216 @@
+Error:
+  description: 'Error terstruktur. Kode penting: 400 `VALIDATION_FAILED`/`IDEMPOTENCY_KEY_MISSING`,
+
+    401 `AUTH_TOKEN_MISSING`/`AUTH_TOKEN_INVALID`/`AUTH_INVALID_CREDENTIALS`,
+
+    403 `FORBIDDEN`/`USER_SUSPENDED`, 404 `*_NOT_FOUND`, 409 `*_CONFLICT`,
+
+    422 `*_INSUFFICIENT`/`*_INVALID`/`ORDER_UNFULFILLABLE`, 429 `RATE_LIMIT_EXCEEDED`.
+
+    '
+  content:
+    application/json:
+      schema:
+        $ref: ./schemas/common.yaml#/ErrorResponse
+UserSingle:
+  description: User
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/auth.yaml#/User
+UserList:
+  description: Daftar user
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            type: array
+            items:
+              $ref: ./schemas/auth.yaml#/User
+          metadata:
+            $ref: ./schemas/common.yaml#/CursorMeta
+ContactSingle:
+  description: Alamat
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/contacts.yaml#/Contact
+BrandSingle:
+  description: Brand
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Brand
+CategorySingle:
+  description: Kategori
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Category
+AttributeSingle:
+  description: Attribute
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Attribute
+ProductSingle:
+  description: Produk
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Product
+VariantSingle:
+  description: Variant
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Variant
+DiscountSingle:
+  description: Promo
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/catalog.yaml#/Discount
+OutletSingle:
+  description: Outlet
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/outlets.yaml#/Outlet
+InventorySingle:
+  description: Inventori
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/outlets.yaml#/Inventory
+CartSingle:
+  description: Cart (selalu dengan validasi stok per item)
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/cart.yaml#/Cart
+OrderSingle:
+  description: Order
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/orders.yaml#/Order
+PaymentSingle:
+  description: Payment
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/payments.yaml#/Payment
+InvoiceSingle:
+  description: Invoice
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/payments.yaml#/Invoice
+SupplierSingle:
+  description: Supplier
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/purchasing.yaml#/Supplier
+PoSingle:
+  description: Purchase order
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/purchasing.yaml#/PurchaseOrder
+TransferSingle:
+  description: Transfer stok
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          ok:
+            type: boolean
+          data:
+            $ref: ./schemas/purchasing.yaml#/StockTransfer
