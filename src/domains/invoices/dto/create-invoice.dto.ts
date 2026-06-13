@@ -40,9 +40,11 @@ export class CreateInvoiceDTO {
   @Transform(({ value }: { value: string }) => value.trim())
   customerName: string;
 
+  /** Opsional: kosong untuk walk-in tanpa email — email invoice dilewati. */
+  @IsOptional()
   @IsEmail()
   @Transform(({ value }: { value: string }) => value.trim().toLowerCase())
-  customerEmail: string;
+  customerEmail?: string;
 
   @IsOptional()
   @IsDateString()

@@ -10,6 +10,8 @@ Order:
     userId:
       type: string
       format: uuid
+      nullable: true
+      description: Null untuk order OFFLINE walk-in tanpa akun member
     outletId:
       type: integer
     outletName:

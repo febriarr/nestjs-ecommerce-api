@@ -186,13 +186,27 @@ export class OrdersService {
 
   // ---------- order OFFLINE (POS) ----------
 
-  /** Order POS: outlet = tempat kasir bertransaksi, tanpa routing & alamat. */
+  /**
+   * Order POS: outlet = tempat kasir bertransaksi, tanpa routing & alamat.
+   * Pelanggan opsional: member (`userId`) memakai nama/email akun; walk-in
+   * memakai `customerName`/`customerEmail` dari DTO, atau fallback
+   * "Pelanggan Umum" tanpa email (invoice dibuat, email dilewati).
+   */
   async createOfflineOrder(
     dto: CreateOfflineOrderDTO
   ): Promise<OrderResponseDto> {
-    const customer = await this.ordersRepository.customerById(dto.userId);
-    if (!customer) {
-      throw UserNotFoundException({ details: { userId: dto.userId } });
+    let userId: string | null = null;
+    let customerName = dto.customerName ?? 'Pelanggan Umum';
+    let customerEmail: string | null = dto.customerEmail ?? null;
+
+    if (dto.userId !== undefined) {
+      const customer = await this.ordersRepository.customerById(dto.userId);
+      if (!customer) {
+        throw UserNotFoundException({ details: { userId: dto.userId } });
+      }
+      userId = customer.id;
+      customerName = customer.name;
+      customerEmail = customer.email;
     }
 
     const outlet = await this.outletsRepository.findById(dto.outletId);
@@ -211,14 +225,14 @@ export class OrdersService {
     );
 
     const order = await this.placeOrder({
-      userId: customer.id,
+      userId,
       outletId: outlet.id,
       channel: 'OFFLINE',
       lines,
       shippingFee: 0,
       shippingAddress: null,
-      customerName: customer.name,
-      customerEmail: customer.email,
+      customerName,
+      customerEmail,
     });
 
     return this.toOrderResponse(order);
@@ -671,14 +685,14 @@ export class OrdersService {
    * invoice gagal, order dibatalkan dan reservasi dilepas (kompensasi).
    */
   private async placeOrder(params: {
-    userId: string;
+    userId: string | null;
     outletId: number;
     channel: 'ONLINE' | 'OFFLINE';
     lines: CheckoutLine[];
     shippingFee: number;
     shippingAddress: OrderShippingAddress | null;
     customerName: string;
-    customerEmail: string;
+    customerEmail: string | null;
   }): Promise<SelectOrder> {
     const subtotal = params.lines.reduce(
       (sum, line) => sum + line.price * line.quantity,
@@ -746,7 +760,8 @@ export class OrdersService {
     try {
       const invoice = await this.invoicesService.createInvoice({
         customerName: params.customerName,
-        customerEmail: params.customerEmail,
+        // null (walk-in tanpa email) → undefined: invoice tanpa email penerima.
+        customerEmail: params.customerEmail ?? undefined,
         dueDate: expiresAt.toISOString(),
         items: [
           ...params.lines.map((line) => ({

@@ -82,7 +82,7 @@ export class InvoicesService {
     const payload: InsertInvoices = {
       invoiceNumber: dto.invoiceNumber ?? this.generateInvoiceNumber(),
       customerName: dto.customerName,
-      customerEmail: dto.customerEmail,
+      customerEmail: dto.customerEmail ?? null,
       items,
       subtotal,
       total,
@@ -258,6 +258,15 @@ export class InvoicesService {
    */
   async sendInvoiceEmail(id: string): Promise<void> {
     const invoice = await this.ensurePdfReady(id);
+
+    // Walk-in tanpa email: PDF sudah siap (dapat diunduh), email dilewati.
+    if (invoice.customerEmail === null) {
+      await this.invoicesRepository.update(id, {
+        emailStatus: 'SKIPPED',
+        failureReason: null,
+      });
+      return;
+    }
 
     try {
       const stream = await this.storage.getObject(invoice.pdfKey as string);

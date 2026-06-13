@@ -7,7 +7,8 @@ export interface InvoiceTemplateData {
   invoiceNumber: string;
   issueDate: Date;
   customerName: string;
-  customerEmail: string;
+  /** Null untuk walk-in tanpa email — baris email tidak dirender. */
+  customerEmail: string | null;
   items: InvoiceItemSnapshot[];
   subtotal: number;
   total: number;
@@ -145,7 +146,7 @@ export function renderInvoiceHtml(data: InvoiceTemplateData): string {
     <div class="bill-to">
       <div class="label">Ditagihkan kepada</div>
       <strong>${escapeHtml(data.customerName)}</strong>
-      <p>${escapeHtml(data.customerEmail)}</p>
+      ${data.customerEmail ? `<p>${escapeHtml(data.customerEmail)}</p>` : ''}
     </div>
 
     <table>

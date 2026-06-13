@@ -57,6 +57,13 @@
       "when": 1781257991593,
       "tag": "0007_robust_virginia_dare",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781334393570,
+      "tag": "0008_dry_silk_fever",
+      "breakpoints": true
     }
   ]
 }

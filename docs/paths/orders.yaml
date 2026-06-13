@@ -131,7 +131,12 @@ orders-offline:
   post:
     tags:
     - Orders
-    summary: Order OFFLINE / POS (admin — kasir); userId body = pelanggan
+    summary: Order OFFLINE / POS (admin — kasir)
+    description: >-
+      Pelanggan opsional. `userId` ada → member (nama/email dari akun);
+      kosong → walk-in: pakai `customerName`/`customerEmail` bila dikirim,
+      atau fallback "Pelanggan Umum" tanpa email (invoice tetap dibuat,
+      email dilewati).
     requestBody:
       required: true
       content:
@@ -139,14 +144,21 @@ orders-offline:
           schema:
             type: object
             required:
-            - userId
             - outletId
             - items
             properties:
               userId:
                 type: string
                 format: uuid
-                description: pelanggan terdaftar
+                nullable: true
+                description: pelanggan member; kosongkan untuk walk-in
+              customerName:
+                type: string
+                description: nama walk-in (diabaikan bila userId ada)
+              customerEmail:
+                type: string
+                format: email
+                description: email walk-in untuk struk (opsional)
               outletId:
                 type: integer
                 description: outlet tempat kasir

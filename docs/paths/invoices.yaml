@@ -11,7 +11,6 @@ invoices:
             type: object
             required:
             - customerName
-            - customerEmail
             - items
             properties:
               invoiceNumber:
@@ -22,6 +21,7 @@ invoices:
               customerEmail:
                 type: string
                 format: email
+                description: opsional — kosong = invoice tanpa email (email dilewati)
               issueDate:
                 type: string
                 format: date-time

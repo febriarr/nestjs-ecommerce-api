@@ -39,8 +39,9 @@ export const INVOICE_PAYMENT_STATUSES = [
 export type InvoicePaymentStatus = (typeof INVOICE_PAYMENT_STATUSES)[number];
 /** Status pipeline pembuatan PDF (queue). */
 export type InvoicePdfStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED';
-/** Status pengiriman email invoice (queue). */
-export type InvoiceEmailStatus = 'PENDING' | 'SENT' | 'FAILED';
+/** Status pengiriman email invoice (queue). SKIPPED = tanpa email penerima
+ *  (mis. order POS walk-in tanpa email) — PDF tetap di-generate. */
+export type InvoiceEmailStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
 
 export const invoices = pgTable(
   'invoices',
@@ -53,7 +54,9 @@ export const invoices = pgTable(
       .notNull()
       .defaultNow(),
     customerName: varchar('customer_name', { length: 150 }).notNull(),
-    customerEmail: varchar('customer_email', { length: 255 }).notNull(),
+    // Nullable: order POS walk-in bisa tanpa email — email invoice dilewati,
+    // PDF tetap di-generate & dapat diunduh.
+    customerEmail: varchar('customer_email', { length: 255 }),
     items: jsonb('items').$type<InvoiceItemSnapshot[]>().notNull(),
     subtotal: bigint('subtotal', { mode: 'number' }).notNull(),
     total: bigint('total', { mode: 'number' }).notNull(),

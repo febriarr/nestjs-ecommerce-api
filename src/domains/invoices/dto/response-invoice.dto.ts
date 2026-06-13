@@ -20,7 +20,7 @@ export class InvoiceResponseDto {
   customerName: string;
 
   @Expose()
-  customerEmail: string;
+  customerEmail: string | null;
 
   @Expose()
   items: InvoiceItemSnapshot[];

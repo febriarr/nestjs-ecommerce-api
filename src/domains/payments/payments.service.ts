@@ -65,16 +65,21 @@ export class PaymentsService {
       return this.toPaymentResponse(existing, null);
     }
 
-    const customer = await this.ordersRepository.customerById(order.userId);
-    if (!customer) {
-      throw UserNotFoundException({ details: { userId: order.userId } });
+    // Order walk-in (userId null) tidak punya member — email gateway kosong.
+    let customerEmail = '';
+    if (order.userId !== null) {
+      const customer = await this.ordersRepository.customerById(order.userId);
+      if (!customer) {
+        throw UserNotFoundException({ details: { userId: order.userId } });
+      }
+      customerEmail = customer.email;
     }
 
     const initiation = await this.gateway.initiate({
       orderId: order.id,
       orderNumber: order.orderNumber,
       amount: order.total,
-      customerEmail: customer.email,
+      customerEmail,
     });
 
     const payment = await this.paymentsRepository.insert({

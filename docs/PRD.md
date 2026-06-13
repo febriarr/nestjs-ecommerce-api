@@ -89,8 +89,12 @@ melalui satu pintu yang tervalidasi dan ter-audit.
 - Checkout membuat **invoice** tertaut (1:1) dan mengosongkan cart.
 
 ### 4.5 POS (OFFLINE)
-- Kasir (admin) membuat order untuk pelanggan terdaftar dengan item eksplisit,
-  outlet = tempat kasir; tanpa routing & alamat.
+- Kasir (admin) membuat order dengan item eksplisit, outlet = tempat kasir;
+  tanpa routing & alamat.
+- **Pelanggan opsional**: member (`userId`) memakai nama/email akun; **walk-in**
+  tanpa member (`userId` null) memakai nama/email yang dikirim kasir, atau
+  fallback "Pelanggan Umum" tanpa email — invoice tetap dibuat (PDF dapat
+  dicetak), email dilewati bila tak ada alamat.
 - **Pay-cash** satu langkah: order PENDING → PAID + payment `cash` + invoice pipeline.
 
 ### 4.6 Pembayaran & invoice
@@ -125,7 +129,7 @@ melalui satu pintu yang tervalidasi dan ter-audit.
 | # | Aturan |
 |---|---|
 | BR-1 | Available stock = `stock − reservedStock`; tidak pernah negatif (CHECK + update bersyarat) |
-| BR-2 | Satu order = satu outlet; satu order = maksimal satu invoice |
+| BR-2 | Satu order = satu outlet; satu order = maksimal satu invoice. Order ONLINE selalu punya `userId` (dari sesi); order OFFLINE walk-in boleh tanpa `userId` (member opsional) |
 | BR-3 | Revenue diakui pada `paidAt` (status PAID); refund dilaporkan terpisah, tidak mengurangi diam-diam |
 | BR-4 | Harga di cart selalu live; snapshot harga hanya terjadi saat checkout (order_items) |
 | BR-5 | Semua mutasi stok wajib melalui `OutletsRepository` dan menulis ledger dalam transaksi yang sama |

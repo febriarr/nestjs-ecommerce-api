@@ -25,8 +25,9 @@ export class OrderResponseDto {
   @Expose()
   orderNumber: string;
 
+  /** Null untuk order OFFLINE walk-in tanpa akun member. */
   @Expose()
-  userId: string;
+  userId: string | null;
 
   @Expose()
   outletId: number;

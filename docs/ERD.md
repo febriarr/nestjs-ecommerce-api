@@ -197,7 +197,7 @@ erDiagram
     orders {
         uuid id PK
         varchar order_number UK "ORD-YYYYMMDD-XXXXXX"
-        uuid user_id FK
+        uuid user_id FK "nullable — OFFLINE walk-in tanpa member"
         bigint outlet_id FK
         enum channel "ONLINE | OFFLINE"
         enum status "PENDING|PAID|CANCELLED|EXPIRED|REFUNDED"
@@ -244,7 +244,7 @@ erDiagram
         uuid id PK
         varchar invoice_number UK "INV-YYYYMMDD-XXXXXX"
         varchar customer_name
-        varchar customer_email
+        varchar customer_email "nullable — walk-in tanpa email"
         jsonb items "snapshot imutabel"
         bigint subtotal
         bigint total
@@ -252,7 +252,7 @@ erDiagram
         bigint amount_paid
         varchar pdf_key "R2 object"
         varchar pdf_status "PENDING|PROCESSING|READY|FAILED"
-        varchar email_status "PENDING|SENT|FAILED"
+        varchar email_status "PENDING|SENT|FAILED|SKIPPED"
     }
 ```
 

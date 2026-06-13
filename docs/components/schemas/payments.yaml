@@ -55,6 +55,8 @@ Invoice:
       type: string
     customerEmail:
       type: string
+      nullable: true
+      description: Null untuk walk-in tanpa email (email invoice dilewati)
     items:
       type: array
       items:
@@ -108,6 +110,8 @@ Invoice:
       - PENDING
       - SENT
       - FAILED
+      - SKIPPED
+      description: SKIPPED = invoice tanpa email penerima (walk-in); PDF tetap dibuat
     sentAt:
       type: string
       format: date-time

@@ -314,11 +314,16 @@ FE tidak pernah menerima konfirmasi bayar dari gateway — kebenaran selalu dari
 
 | Langkah kasir | Panggilan API |
 |---|---|
-| Cari pelanggan terdaftar | `GET /users?search=` |
+| (opsional) Cari pelanggan member | `GET /users?search=` |
 | Susun keranjang POS (state lokal FE) | `GET /products...` untuk harga/stok outlet kasir |
-| Buat order | `POST /orders/offline { userId, outletId, items[] }` → reservasi stok |
+| Buat order — member | `POST /orders/offline { userId, outletId, items[] }` → reservasi stok |
+| Buat order — **walk-in** | `POST /orders/offline { outletId, items[], customerName?, customerEmail? }` (tanpa `userId`) |
 | Terima tunai | `POST /payments/cash { orderId }` → PAID + finalisasi + invoice pipeline |
 | (non-tunai) | initiate + webhook seperti 5.5 |
+
+> **Walk-in tanpa member**: `userId` boleh dikosongkan (`orders.user_id` nullable).
+> Invoice tetap dibuat & PDF tetap di-generate (dapat dicetak/diunduh); bila
+> `customerEmail` kosong, pengiriman email dilewati (`emailStatus: SKIPPED`).
 
 ### 5.7 Pasca-penjualan: batal, kedaluwarsa, refund
 

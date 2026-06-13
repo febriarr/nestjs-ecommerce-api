@@ -65,9 +65,11 @@ export const orders = pgTable(
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     orderNumber: varchar('order_number', { length: 50 }).notNull().unique(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'restrict' }),
+    // Nullable: order OFFLINE (POS) walk-in tidak selalu punya akun member.
+    // Order ONLINE selalu terisi (dari sesi); walk-in tanpa member = null.
+    userId: uuid('user_id').references(() => users.id, {
+      onDelete: 'restrict',
+    }),
     outletId: bigint('outlet_id', { mode: 'number' })
       .notNull()
       .references(() => outlets.id, { onDelete: 'restrict' }),
