@@ -131,6 +131,8 @@ paths:
     $ref: ./paths/variants.yaml#/products-productid-variants-variantid-media
   /products/{productId}/variants/{variantId}/media/{mediaId}:
     $ref: ./paths/variants.yaml#/products-productid-variants-variantid-media-mediaid
+  /products/{productId}/variants/{variantId}/media/{mediaId}/default:
+    $ref: ./paths/variants.yaml#/products-productid-variants-variantid-media-mediaid-default
   /products/{productId}/discounts:
     $ref: ./paths/discounts.yaml#/products-productid-discounts
   /products/{productId}/discounts/{discountId}:

@@ -71,6 +71,13 @@
       "when": 1781337418278,
       "tag": "0009_legal_susan_delgado",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781340668884,
+      "tag": "0010_lame_zaran",
+      "breakpoints": true
     }
   ]
 }

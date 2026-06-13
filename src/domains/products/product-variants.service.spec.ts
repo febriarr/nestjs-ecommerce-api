@@ -68,6 +68,8 @@ function makeVariantsRepo(): jest.Mocked<ProductVariantsRepository> {
     listByProduct: jest.fn(),
     skuCodeExists: jest.fn().mockResolvedValue(false),
     totalAvailableStock: jest.fn().mockResolvedValue(0),
+    countVariantMedia: jest.fn().mockResolvedValue(0),
+    setDefaultVariantMedia: jest.fn(),
     createVariant: jest.fn().mockResolvedValue(variant),
     update: jest.fn().mockResolvedValue(variant),
     softDelete: jest.fn(),

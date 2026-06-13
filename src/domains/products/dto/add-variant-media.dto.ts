@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class AddVariantMediaDTO {
   /** id product_media (harus milik product yang sama dengan variant). */
@@ -9,4 +9,9 @@ export class AddVariantMediaDTO {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  /** Jadikan gambar ini default variant (gambar utama di cart/listing). */
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 }

@@ -129,6 +129,7 @@ products-productid-variants-variantid-media:
     tags:
     - Variants
     summary: Link media produk ke variant (admin)
+    description: 'Media pertama variant otomatis jadi default; `isDefault: true` memaksa jadi default.'
     parameters:
     - $ref: ../components/parameters.yaml#/ProductId
     - $ref: ../components/parameters.yaml#/VariantId
@@ -145,6 +146,9 @@ products-productid-variants-variantid-media:
                 type: integer
               sortOrder:
                 type: integer
+              isDefault:
+                type: boolean
+                description: jadikan gambar utama variant
     responses:
       '201':
         description: Ter-link
@@ -162,5 +166,19 @@ products-productid-variants-variantid-media-mediaid:
     responses:
       '200':
         description: Terlepas
+      default:
+        $ref: ../components/responses.yaml#/Error
+products-productid-variants-variantid-media-mediaid-default:
+  put:
+    tags:
+    - Variants
+    summary: Tetapkan gambar utama variant — default di cart/listing (admin)
+    parameters:
+    - $ref: ../components/parameters.yaml#/ProductId
+    - $ref: ../components/parameters.yaml#/VariantId
+    - $ref: ../components/parameters.yaml#/MediaId
+    responses:
+      '200':
+        $ref: ../components/responses.yaml#/VariantSingle
       default:
         $ref: ../components/responses.yaml#/Error

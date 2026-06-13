@@ -206,6 +206,7 @@ Variant:
             nullable: true
     media:
       type: array
+      description: terurut default dulu, lalu sortOrder
       items:
         type: object
         properties:
@@ -219,6 +220,9 @@ Variant:
             nullable: true
           sortOrder:
             type: integer
+          isDefault:
+            type: boolean
+            description: gambar utama variant (ditampilkan di cart/listing)
     createdAt:
       type: string
       format: date-time

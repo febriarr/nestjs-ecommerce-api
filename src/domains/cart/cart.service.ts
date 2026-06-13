@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CartItemView, CartRepository } from './cart.repository';
 import { OutletsRepository } from '../outlets/outlets.repository';
+import { ImageUploadService } from '../../infrastructure/image-processing/image-upload.service';
 import { AddCartItemDTO } from './dto/add-cart-item.dto';
 import { UpdateCartItemDTO } from './dto/update-cart-item.dto';
 import { SetCartOutletDTO } from './dto/set-cart-outlet.dto';
@@ -26,7 +27,8 @@ import { UserNotFoundException } from '../../common/exceptions/domains/user.exce
 export class CartService {
   constructor(
     private readonly cartRepository: CartRepository,
-    private readonly outletsRepository: OutletsRepository
+    private readonly outletsRepository: OutletsRepository,
+    private readonly imageUpload: ImageUploadService
   ) {}
 
   async getCart(userId: string): Promise<CartResponseDto> {
@@ -186,12 +188,23 @@ export class CartService {
       availability.map((row) => [row.variantId, row.availableStock])
     );
 
+    // Gambar default per variant (default → fallback sortOrder) untuk cart.
+    const images = await this.cartRepository.defaultImagesByVariantIds(
+      items.map((item) => item.variantId)
+    );
+    const imageKeyByVariant = new Map<number, string>(
+      images.map((row) => [row.variantId, row.imageKey])
+    );
+
     const itemResponses = items.map((item) =>
       this.toItemResponse(
         item,
         winners.get(item.productId),
         outlet,
-        availableByVariant
+        availableByVariant,
+        this.imageUpload.resolveUrl(
+          imageKeyByVariant.get(item.variantId) ?? null
+        )
       )
     );
 
@@ -235,7 +248,8 @@ export class CartService {
     item: CartItemView,
     discount: SelectProductDiscount | undefined,
     outlet: SelectOutlet | null,
-    availableByVariant: Map<number, number>
+    availableByVariant: Map<number, number>,
+    imageUrl: string | null
   ): CartItemResponse {
     const pricing = priceWithDiscount(item.price, discount);
     const availableStock =
@@ -246,6 +260,7 @@ export class CartService {
       productName: item.productName,
       variantName: item.variantName,
       skuCode: item.skuCode,
+      imageUrl,
       unitPrice: pricing.unitPrice,
       discountAmount: pricing.discountAmount,
       finalUnitPrice: pricing.finalUnitPrice,

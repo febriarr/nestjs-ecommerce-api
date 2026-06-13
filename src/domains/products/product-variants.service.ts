@@ -159,11 +159,32 @@ export class ProductVariantsService {
         details: { productId, mediaId: dto.mediaId },
       });
 
+    // Media pertama variant otomatis jadi default (gambar utama).
+    const isFirst =
+      (await this.variantsRepo.countVariantMedia(variantId)) === 0;
     await this.variantsRepo.insertVariantMedia({
       variantId,
       mediaId: dto.mediaId,
       ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
     });
+    if (dto.isDefault === true || isFirst) {
+      await this.variantsRepo.setDefaultVariantMedia(variantId, dto.mediaId);
+    }
+  }
+
+  /** Tetapkan gambar utama variant (yang dipakai cart/listing). */
+  async setDefaultMedia(
+    productId: number,
+    variantId: number,
+    mediaId: number
+  ): Promise<VariantResponseDto> {
+    await this.getVariantOrThrow(productId, variantId);
+    const link = await this.variantsRepo.findVariantMedia(variantId, mediaId);
+    if (!link)
+      throw ProductMediaNotFoundException({ details: { variantId, mediaId } });
+
+    await this.variantsRepo.setDefaultVariantMedia(variantId, mediaId);
+    return this.findById(productId, variantId);
   }
 
   async removeMedia(
@@ -279,6 +300,7 @@ export class ProductVariantsService {
         imageUrl: this.imageUpload.resolveUrl(m.imageKey),
         imageAlt: m.imageAlt,
         sortOrder: m.sortOrder,
+        isDefault: m.isDefault,
       })),
     });
   }

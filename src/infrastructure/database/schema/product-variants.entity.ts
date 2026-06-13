@@ -129,6 +129,10 @@ export const variantMedia = pgTable(
       .notNull()
       .references(() => productMedia.id, { onDelete: 'cascade' }),
     sortOrder: integer('sort_order').default(0).notNull(),
+    /** Gambar utama variant — yang ditampilkan di cart/listing. Maksimal satu
+     *  per variant (partial unique index); bila tak ada, resolusi fallback ke
+     *  sortOrder terkecil lalu thumbnail product. */
+    isDefault: boolean('is_default').default(false).notNull(),
     createdAt: timestamp('created_at', { mode: 'date', withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -136,6 +140,10 @@ export const variantMedia = pgTable(
   (t) => [
     primaryKey({ columns: [t.variantId, t.mediaId] }),
     index('variant_media_media_id_idx').on(t.mediaId),
+    // hanya boleh ada SATU gambar default per variant
+    uniqueIndex('variant_media_one_default_idx')
+      .on(t.variantId)
+      .where(sql`${t.isDefault} = true`),
   ]
 );
 

@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -77,6 +78,16 @@ export class ProductVariantsController {
     @Body() dto: AddVariantMediaDTO
   ): Promise<void> {
     return this.variantsService.addMedia(productId, variantId, dto);
+  }
+
+  /** Tetapkan gambar utama variant (default di cart/listing). */
+  @Put(':variantId/media/:mediaId/default')
+  async setDefaultMedia(
+    @Param('productId', ParseIntPipe) productId: number,
+    @Param('variantId', ParseIntPipe) variantId: number,
+    @Param('mediaId', ParseIntPipe) mediaId: number
+  ): Promise<VariantResponseDto> {
+    return this.variantsService.setDefaultMedia(productId, variantId, mediaId);
   }
 
   @Delete(':variantId/media/:mediaId')

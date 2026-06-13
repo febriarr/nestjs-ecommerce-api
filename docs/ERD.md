@@ -110,9 +110,17 @@ erDiagram
         timestamptz end_at
         boolean is_active
     }
+    variant_media {
+        bigint variant_id FK "PK gabungan"
+        bigint media_id FK "PK gabungan"
+        integer sort_order
+        boolean is_default "gambar utama; maks 1 per variant (partial unique)"
+    }
 ```
 
 > Stok **tidak** disimpan di `product_variants` — sepenuhnya per-outlet (lihat bagian 3).
+> Gambar yang ditampilkan di cart/listing = `variant_media.is_default` → fallback
+> `sort_order` terkecil → thumbnail product.
 
 ## 3. Outlet, Inventori & Ledger Audit
 
@@ -368,6 +376,7 @@ erDiagram
 |---|---|---|
 | Partial unique `is_primary` | `user_contacts` | Satu alamat utama per user |
 | Partial unique `is_default` | `product_variants` | Satu variant default per product |
+| Partial unique `is_default` | `variant_media` | Satu gambar utama per variant |
 | Partial unique `is_online_default` | `outlets` | Satu outlet fallback routing online |
 | Partial unique `status = PENDING` | `payments` | Satu attempt pembayaran aktif per order |
 | Unique `(user, scope, key)` | `idempotency_keys` | Anti order ganda saat retry checkout |

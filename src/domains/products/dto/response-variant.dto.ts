@@ -14,6 +14,8 @@ export interface VariantMediaResponse {
   imageUrl: string | null;
   imageAlt: string | null;
   sortOrder: number;
+  /** Gambar utama variant (ditampilkan di cart/listing). */
+  isDefault: boolean;
 }
 
 export class VariantResponseDto {

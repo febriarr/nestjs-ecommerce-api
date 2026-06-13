@@ -10,10 +10,18 @@ import {
   cartItems,
   carts,
   productDiscounts,
+  productMedia,
   productVariants,
   products,
   users,
+  variantMedia,
 } from '../../infrastructure/database/schema';
+
+/** Gambar default variant (key R2) untuk ditampilkan di cart. */
+export interface VariantImageRow {
+  variantId: number;
+  imageKey: string;
+}
 
 /** Item cart + identitas & harga live variant (join, tanpa snapshot). */
 export interface CartItemView {
@@ -114,6 +122,32 @@ export class CartRepository extends BaseRepository {
       )
       .where(eq(cartItems.cartId, cartId))
       .orderBy(cartItems.id);
+  }
+
+  /**
+   * Gambar default per variant untuk cart: 1 baris per variant — prioritas
+   * `isDefault`, fallback `sortOrder` terkecil. Variant tanpa media tidak
+   * muncul (caller resolve null → fallback thumbnail product bila perlu).
+   */
+  async defaultImagesByVariantIds(
+    variantIds: number[]
+  ): Promise<VariantImageRow[]> {
+    if (variantIds.length === 0) return [];
+    const rows = await this.db
+      .selectDistinctOn([variantMedia.variantId], {
+        variantId: variantMedia.variantId,
+        imageKey: productMedia.imageUrl,
+      })
+      .from(variantMedia)
+      .innerJoin(productMedia, eq(variantMedia.mediaId, productMedia.id))
+      .where(inArray(variantMedia.variantId, variantIds))
+      .orderBy(
+        variantMedia.variantId,
+        desc(variantMedia.isDefault),
+        variantMedia.sortOrder,
+        variantMedia.mediaId
+      );
+    return rows;
   }
 
   /** Tambah item; bila sudah ada, qty diakumulasi (upsert atomic). */

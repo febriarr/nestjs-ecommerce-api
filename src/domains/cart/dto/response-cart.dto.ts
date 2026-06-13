@@ -14,6 +14,9 @@ export interface CartItemResponse {
   productName: string;
   variantName: string | null;
   skuCode: string;
+  /** Gambar default variant (default → fallback sortOrder); null bila variant
+   *  tidak punya media. Siap dipakai langsung di card cart. */
+  imageUrl: string | null;
   /** Harga satuan sebelum diskon (Rupiah penuh). */
   unitPrice: number;
   /** Potongan per satuan dari diskon aktif berprioritas tertinggi. */

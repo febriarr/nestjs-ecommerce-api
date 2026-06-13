@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
@@ -34,6 +34,7 @@ export interface VariantMediaView {
   imageKey: string;
   imageAlt: string | null;
   sortOrder: number;
+  isDefault: boolean;
 }
 
 @Injectable()
@@ -133,11 +134,13 @@ export class ProductVariantsRepository extends BaseRepository {
       }
 
       if (mediaIds.length > 0) {
+        // Media pertama otomatis jadi default (gambar utama variant).
         await tx.insert(variantMedia).values(
           mediaIds.map((mediaId, index) => ({
             variantId: variant.id,
             mediaId,
             sortOrder: index,
+            isDefault: index === 0,
           }))
         );
       }
@@ -219,6 +222,42 @@ export class ProductVariantsRepository extends BaseRepository {
     await this.db.insert(variantMedia).values(payload);
   }
 
+  /** Jumlah media yang sudah ter-link ke variant (untuk auto-default first). */
+  async countVariantMedia(variantId: number): Promise<number> {
+    const rows = await this.db
+      .select({ mediaId: variantMedia.mediaId })
+      .from(variantMedia)
+      .where(eq(variantMedia.variantId, variantId));
+    return rows.length;
+  }
+
+  /** Jadikan satu media sebagai default variant (unset lainnya, atomic). */
+  async setDefaultVariantMedia(
+    variantId: number,
+    mediaId: number
+  ): Promise<void> {
+    await this.withTransaction(async (tx) => {
+      await tx
+        .update(variantMedia)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(variantMedia.variantId, variantId),
+            eq(variantMedia.isDefault, true)
+          )
+        );
+      await tx
+        .update(variantMedia)
+        .set({ isDefault: true })
+        .where(
+          and(
+            eq(variantMedia.variantId, variantId),
+            eq(variantMedia.mediaId, mediaId)
+          )
+        );
+    });
+  }
+
   async deleteVariantMedia(variantId: number, mediaId: number): Promise<void> {
     await this.db
       .delete(variantMedia)
@@ -230,6 +269,7 @@ export class ProductVariantsRepository extends BaseRepository {
       );
   }
 
+  /** Media default → fallback sortOrder terkecil dulu (untuk listing). */
   async listVariantMedia(variantId: number): Promise<VariantMediaView[]> {
     return this.db
       .select({
@@ -237,10 +277,11 @@ export class ProductVariantsRepository extends BaseRepository {
         imageKey: productMedia.imageUrl,
         imageAlt: productMedia.imageAlt,
         sortOrder: variantMedia.sortOrder,
+        isDefault: variantMedia.isDefault,
       })
       .from(variantMedia)
       .innerJoin(productMedia, eq(variantMedia.mediaId, productMedia.id))
       .where(eq(variantMedia.variantId, variantId))
-      .orderBy(variantMedia.sortOrder);
+      .orderBy(desc(variantMedia.isDefault), variantMedia.sortOrder);
   }
 }

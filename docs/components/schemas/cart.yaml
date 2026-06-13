@@ -56,6 +56,10 @@ CartItem:
       nullable: true
     skuCode:
       type: string
+    imageUrl:
+      type: string
+      nullable: true
+      description: gambar default variant (default → fallback sortOrder); null bila tanpa media
     unitPrice:
       type: integer
       description: sebelum diskon
