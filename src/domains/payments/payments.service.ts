@@ -9,6 +9,7 @@ import type {
 } from './payment-gateway.interface';
 import { InitiatePaymentDTO } from './dto/initiate-payment.dto';
 import { PaymentWebhookDTO } from './dto/payment-webhook.dto';
+import { PayManualDTO } from './dto/pay-manual.dto';
 import { RefundOrderDTO } from './dto/refund-order.dto';
 import { PaymentResponseDto } from './dto/response-payment.dto';
 import { OrderResponseDto } from '../orders/dto/response-order.dto';
@@ -85,6 +86,7 @@ export class PaymentsService {
     const payment = await this.paymentsRepository.insert({
       orderId: order.id,
       provider: this.gateway.provider,
+      method: 'ONLINE',
       externalId: initiation.externalId,
       paymentCode: initiation.paymentCode,
       amount: order.total,
@@ -166,15 +168,21 @@ export class PaymentsService {
   }
 
   /**
-   * Pembayaran TUNAI di kasir (POS): order PENDING langsung PAID (finalisasi
+   * Pembayaran OFFLINE di kasir (POS): order PENDING langsung PAID (finalisasi
    * stok + invoice → pipeline PDF/email), lalu dicatat sebagai payment
-   * provider 'cash'. Attempt gateway yang masih PENDING ditandai FAILED
-   * (dibatalkan — dibayar tunai). Idempotent bila sudah dibayar.
+   * `provider: 'manual'` dengan tender CASH/CARD/QRIS/TRANSFER + referensi
+   * settlement opsional. Settlement (EDC/QRIS/transfer) terjadi di luar sistem
+   * — tidak ada integrasi bank, hanya pencatatan untuk rekonsiliasi manual.
+   * Attempt gateway yang masih PENDING ditandai FAILED. Idempotent bila sudah
+   * dibayar.
    */
-  async payCash(orderId: string, actorId: string): Promise<PaymentResponseDto> {
-    const order = await this.ordersRepository.findById(orderId);
+  async payManual(
+    dto: PayManualDTO,
+    actorId: string
+  ): Promise<PaymentResponseDto> {
+    const order = await this.ordersRepository.findById(dto.orderId);
     if (!order) {
-      throw OrderNotFoundException({ details: { id: orderId } });
+      throw OrderNotFoundException({ details: { id: dto.orderId } });
     }
 
     const succeeded = await this.paymentsRepository.findSucceededByOrder(
@@ -193,16 +201,18 @@ export class PaymentsService {
     if (pending) {
       await this.paymentsRepository.update(pending.id, {
         status: 'FAILED',
-        failureReason: 'Dibatalkan — order dibayar tunai di kasir.',
+        failureReason: 'Dibatalkan — order dibayar di kasir (offline).',
       });
     }
 
     // Order dulu (stok + invoice, idempotent), baru catat payment — retry
-    // payCash setelah gagal di langkah kedua menyembuhkan diri sendiri.
+    // payManual setelah gagal di langkah kedua menyembuhkan diri sendiri.
     await this.ordersService.markPaid(order.id);
     const payment = await this.paymentsRepository.insert({
       orderId: order.id,
-      provider: 'cash',
+      provider: 'manual',
+      method: dto.method,
+      reference: dto.reference ?? null,
       externalId: null,
       paymentCode: null,
       amount: order.total,
@@ -211,7 +221,7 @@ export class PaymentsService {
     });
 
     this.logger.log(
-      `Order ${order.orderNumber} dibayar tunai (kasir ${actorId})`
+      `Order ${order.orderNumber} dibayar ${dto.method} (kasir ${actorId})`
     );
     return this.toPaymentResponse(payment, null);
   }
@@ -256,6 +266,8 @@ export class PaymentsService {
       id: payment.id,
       orderId: payment.orderId,
       provider: payment.provider,
+      method: payment.method,
+      reference: payment.reference,
       externalId: payment.externalId,
       paymentCode: payment.paymentCode,
       amount: payment.amount,

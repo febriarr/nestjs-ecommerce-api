@@ -20,16 +20,18 @@ payments-initiate:
         $ref: ../components/responses.yaml#/PaymentSingle
       default:
         $ref: ../components/responses.yaml#/Error
-payments-cash:
+payments-manual:
   post:
     tags:
     - Payments
-    summary: Pembayaran tunai di kasir / POS (admin) — order langsung PAID
-    description: 'Role: admin/super_admin. Finalisasi stok + invoice PAID (pipeline PDF + email jalan).
-
-      Attempt gateway yang masih PENDING ditandai FAILED. Idempoten.
-
-      '
+    summary: Pembayaran OFFLINE di kasir / POS (admin) — order langsung PAID
+    description: >-
+      Role: admin/super_admin. Tender CASH | CARD | QRIS | TRANSFER. Settlement
+      (EDC/QRIS/transfer milik merchant) terjadi DI LUAR sistem — tanpa
+      integrasi bank; backend hanya mencatat metode + `reference` opsional
+      untuk rekonsiliasi manual. Finalisasi stok + invoice PAID (pipeline
+      PDF + email jalan). Attempt gateway yang masih PENDING ditandai FAILED.
+      Idempoten.
     requestBody:
       required: true
       content:
@@ -38,10 +40,18 @@ payments-cash:
             type: object
             required:
             - orderId
+            - method
             properties:
               orderId:
                 type: string
                 format: uuid
+              method:
+                type: string
+                enum: [CASH, CARD, QRIS, TRANSFER]
+              reference:
+                type: string
+                maxLength: 100
+                description: approval code EDC / RRN QRIS / ref transfer (opsional)
     responses:
       '201':
         $ref: ../components/responses.yaml#/PaymentSingle

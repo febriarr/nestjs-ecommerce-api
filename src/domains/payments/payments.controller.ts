@@ -12,7 +12,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { SelectUser } from '../../infrastructure/database/schema';
-import { PayCashDTO } from './dto/pay-cash.dto';
+import { PayManualDTO } from './dto/pay-manual.dto';
 import { RefundOrderDTO } from './dto/refund-order.dto';
 import { OrderResponseDto } from '../orders/dto/response-order.dto';
 import { InitiatePaymentDTO } from './dto/initiate-payment.dto';
@@ -32,15 +32,19 @@ export class PaymentsController {
     return this.paymentsService.initiate(user, dto);
   }
 
-  /** Pembayaran tunai di kasir (POS) — langsung melunasi order. */
-  @Post('cash')
+  /**
+   * Pembayaran OFFLINE di kasir (POS) — langsung melunasi order.
+   * `method`: CASH | CARD | QRIS | TRANSFER; settlement EDC/QRIS/transfer
+   * terjadi di luar sistem, backend hanya mencatat (+ `reference` opsional).
+   */
+  @Post('manual')
   @HttpCode(HttpStatus.CREATED)
   @Roles('admin', 'super_admin')
-  async payCash(
+  async payManual(
     @CurrentUser() user: SelectUser,
-    @Body() dto: PayCashDTO
+    @Body() dto: PayManualDTO
   ): Promise<PaymentResponseDto> {
-    return this.paymentsService.payCash(dto.orderId, user.id);
+    return this.paymentsService.payManual(dto, user.id);
   }
 
   /** Refund penuh order PAID (+ restock opsional). */

@@ -10,7 +10,15 @@ Payment:
     provider:
       type: string
       example: dummy
-      description: dummy | cash
+      description: 'gateway online (dummy/midtrans/xendit) atau ''manual'' (POS offline)'
+    method:
+      type: string
+      enum: [CASH, CARD, QRIS, TRANSFER, ONLINE]
+      description: tender — CASH/CARD/QRIS/TRANSFER (offline POS) atau ONLINE (gateway)
+    reference:
+      type: string
+      nullable: true
+      description: no. referensi settlement offline (approval EDC / RRN QRIS / ref transfer)
     externalId:
       type: string
       nullable: true

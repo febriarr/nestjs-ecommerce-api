@@ -167,8 +167,8 @@ paths:
     $ref: ./paths/orders.yaml#/orders-id-cancel
   /payments/initiate:
     $ref: ./paths/payments.yaml#/payments-initiate
-  /payments/cash:
-    $ref: ./paths/payments.yaml#/payments-cash
+  /payments/manual:
+    $ref: ./paths/payments.yaml#/payments-manual
   /payments/refund:
     $ref: ./paths/payments.yaml#/payments-refund
   /payments/webhook/{provider}:

@@ -67,7 +67,7 @@ invoices-id-status:
     tags:
     - Invoices
     summary: Ubah status pembayaran invoice (admin) — transisi tervalidasi
-    description: 'PAID/PARTIALLY_PAID memicu pipeline PDF + email. Webhook payment & pay-cash
+    description: 'PAID/PARTIALLY_PAID memicu pipeline PDF + email. Webhook payment & pay-manual
 
       memanggil transisi ini otomatis — endpoint ini untuk koreksi manual/DP offline.
 

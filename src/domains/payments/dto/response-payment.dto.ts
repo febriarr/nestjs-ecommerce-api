@@ -1,5 +1,8 @@
 import { Expose } from 'class-transformer';
-import type { PaymentStatus } from '../../../infrastructure/database/schema';
+import type {
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../infrastructure/database/schema';
 
 export class PaymentResponseDto {
   @Expose()
@@ -10,6 +13,14 @@ export class PaymentResponseDto {
 
   @Expose()
   provider: string;
+
+  /** Tender: CASH | CARD | QRIS | TRANSFER (offline) | ONLINE (gateway). */
+  @Expose()
+  method: PaymentMethod;
+
+  /** No. referensi settlement offline (null bila tidak ada). */
+  @Expose()
+  reference: string | null;
 
   @Expose()
   externalId: string | null;

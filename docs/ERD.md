@@ -227,7 +227,9 @@ erDiagram
     payments {
         uuid id PK
         uuid order_id FK
-        varchar provider "dummy | cash"
+        varchar provider "gateway online | 'manual' (POS)"
+        enum method "CASH|CARD|QRIS|TRANSFER|ONLINE"
+        varchar reference "ref settlement offline (EDC/QRIS/transfer)"
         varchar payment_code
         bigint amount
         enum status "PENDING|SUCCEEDED|FAILED|EXPIRED|REFUNDED"

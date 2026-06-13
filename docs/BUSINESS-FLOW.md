@@ -125,7 +125,7 @@ Detail penuh + business rules di [PRD](./PRD.md). Ringkasan per modul:
 | Outlet & inventori | stok per (outlet,variant), adjustment ber-audit, **ledger 8 tipe mutasi** | admin (info outlet publik) |
 | Cart | 1 cart/user terikat 1 outlet, harga live, re-validasi saat ganti outlet | customer login |
 | Order | routing outlet otomatis (kebijakan A), **reservasi 2 fase**, idempotent checkout, TTL+auto-expire, POS offline | customer / kasir |
-| Payment | gateway provider-agnostic (dummy HMAC), pay-cash, **refund + restock** | customer / admin / webhook |
+| Payment | gateway online provider-agnostic (dummy HMAC) + **pay-manual POS** (CASH/CARD/QRIS/TRANSFER, pencatatan tanpa integrasi bank), **refund + restock** | customer / admin / webhook |
 | Invoice | 1:1 dengan order, pipeline PDF→R2→email asinkron | otomatis + admin |
 | Purchasing | supplier, PO→GRN parsial (over-receipt ber-flag), **quick-receive 1 langkah** | admin |
 | Transfer | antar outlet DRAFT→SENT→RECEIVED dari available | admin |
@@ -318,8 +318,13 @@ FE tidak pernah menerima konfirmasi bayar dari gateway — kebenaran selalu dari
 | Susun keranjang POS (state lokal FE) | `GET /products...` untuk harga/stok outlet kasir |
 | Buat order — member | `POST /orders/offline { userId, outletId, items[] }` → reservasi stok |
 | Buat order — **walk-in** | `POST /orders/offline { outletId, items[], customerName?, customerEmail? }` (tanpa `userId`) |
-| Terima tunai | `POST /payments/cash { orderId }` → PAID + finalisasi + invoice pipeline |
-| (non-tunai) | initiate + webhook seperti 5.5 |
+| Terima bayar (offline) | `POST /payments/manual { orderId, method, reference? }` — `method`: CASH \| CARD \| QRIS \| TRANSFER → PAID + finalisasi + invoice pipeline |
+| (gateway online) | initiate + webhook seperti 5.5 |
+
+> **EDC/QRIS/transfer offline**: settlement terjadi di luar sistem (mesin EDC /
+> QRIS / rekening merchant); backend hanya mencatat `method` + `reference`
+> (approval code / RRN / ref transfer) untuk rekonsiliasi manual dengan mutasi
+> bank — **tanpa integrasi bank**. Mekanismenya sama dengan tunai.
 
 > **Walk-in tanpa member**: `userId` boleh dikosongkan (`orders.user_id` nullable).
 > Invoice tetap dibuat & PDF tetap di-generate (dapat dicetak/diunduh); bila
@@ -330,7 +335,7 @@ FE tidak pernah menerima konfirmasi bayar dari gateway — kebenaran selalu dari
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING : checkout / POS (stok RESERVE)
-    PENDING --> PAID : webhook / pay-cash (stok SALE)
+    PENDING --> PAID : webhook / pay-manual (stok SALE)
     PENDING --> CANCELLED : POST /orders/:id/cancel — pemilik atau admin (stok RELEASE)
     PENDING --> EXPIRED : job EXPIRE saat TTL habis (stok RELEASE)
     PAID --> REFUNDED : POST /payments/refund — admin (opsional REFUND_RESTOCK)

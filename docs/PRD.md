@@ -37,7 +37,7 @@ melalui satu pintu yang tervalidasi dan ter-audit.
 2. Setiap pergerakan stok ter-audit (siapa, kapan, berapa, dokumen sumber).
 3. Satu backend melayani dua kanal: web (customer) dan POS (kasir) dengan stok yang sama.
 4. Operasional pembelian tercatat (PO → penerimaan, harga modal tersimpan).
-5. UX UMKM: alur kilat (quick-receive, pay-cash) di atas mesin yang tetap formal.
+5. UX UMKM: alur kilat (quick-receive, pay-manual) di atas mesin yang tetap formal.
 
 **Non-goals (eksplisit)**
 - Multi-tenant / multi-bisnis dalam satu deployment.
@@ -95,11 +95,18 @@ melalui satu pintu yang tervalidasi dan ter-audit.
   tanpa member (`userId` null) memakai nama/email yang dikirim kasir, atau
   fallback "Pelanggan Umum" tanpa email — invoice tetap dibuat (PDF dapat
   dicetak), email dilewati bila tak ada alamat.
-- **Pay-cash** satu langkah: order PENDING → PAID + payment `cash` + invoice pipeline.
+- **Pay-manual** satu langkah: order PENDING → PAID + invoice pipeline, dengan
+  tender `CASH | CARD | QRIS | TRANSFER`. EDC/QRIS/transfer milik merchant
+  di-settle di luar sistem — backend hanya mencatat `method` + `reference`
+  (approval EDC / RRN QRIS / ref transfer) untuk rekonsiliasi manual, **tanpa
+  integrasi bank**.
 
 ### 4.6 Pembayaran & invoice
-- Abstraksi `PaymentGateway` (DI token) — implementasi pertama dummy ber-HMAC;
-  Midtrans/Xendit tinggal implement interface.
+- Dua jalur: (a) **online** lewat abstraksi `PaymentGateway` (DI token; dummy
+  ber-HMAC, Midtrans/Xendit tinggal implement interface) — initiate + webhook;
+  (b) **offline POS** lewat pay-manual (di atas) — pencatatan, tanpa webhook.
+- `payments.method` (CASH/CARD/QRIS/TRANSFER/ONLINE) + `reference` menjadi basis
+  rekonsiliasi & breakdown laporan per tender.
 - Inisiasi idempoten (maks satu attempt PENDING per order); webhook memverifikasi
   signature, mencocokkan nominal, lalu order PAID + finalisasi stok + invoice PAID.
 - Invoice: nomor auto, snapshot item, status UNPAID→…→PAID/VOID; **pipeline asinkron**
@@ -135,7 +142,7 @@ melalui satu pintu yang tervalidasi dan ter-audit.
 | BR-5 | Semua mutasi stok wajib melalui `OutletsRepository` dan menulis ledger dalam transaksi yang sama |
 | BR-6 | Transisi status order/PO/transfer memakai conditional update (kebal race webhook vs expire) |
 | BR-7 | Registrasi publik tidak pernah menerima `role`; pembuatan admin hanya oleh admin |
-| BR-8 | Operasi non-idempoten yang dipicu retry (checkout, webhook, pay-cash, refund) harus aman dipanggil ulang |
+| BR-8 | Operasi non-idempoten yang dipicu retry (checkout, webhook, pay-manual, refund) harus aman dipanggil ulang |
 
 ## 6. Kebutuhan non-fungsional
 

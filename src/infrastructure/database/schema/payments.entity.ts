@@ -23,6 +23,20 @@ export const paymentStatusEnum = pgEnum('payment_status', [
 export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
 
 /**
+ * Metode/tender pembayaran. CASH/CARD/QRIS/TRANSFER = settlement OFFLINE di
+ * POS (EDC/QRIS/rekening milik merchant sendiri) — dikonfirmasi kasir, dicatat
+ * tanpa integrasi bank. ONLINE = lewat payment gateway (initiate + webhook).
+ */
+export const paymentMethodEnum = pgEnum('payment_method', [
+  'CASH',
+  'CARD',
+  'QRIS',
+  'TRANSFER',
+  'ONLINE',
+]);
+export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
+
+/**
  * payments — attempt pembayaran sebuah order lewat PaymentGateway
  * (provider-agnostic). Satu order boleh punya beberapa attempt (retry setelah
  * FAILED), tapi maksimal SATU yang PENDING (partial unique index).
@@ -40,6 +54,11 @@ export const payments = pgTable(
       .notNull()
       .references(() => orders.id, { onDelete: 'restrict' }),
     provider: varchar('provider', { length: 50 }).notNull(),
+    /** Tender type — basis rekonsiliasi & breakdown laporan. */
+    method: paymentMethodEnum('method').notNull(),
+    /** No. referensi settlement OFFLINE (approval code EDC / RRN QRIS / ref
+     *  transfer) untuk dicocokkan manual dengan mutasi bank. */
+    reference: varchar('reference', { length: 100 }),
     /** Id transaksi di sisi provider (null untuk provider manual/dummy). */
     externalId: varchar('external_id', { length: 100 }),
     /** Kode bayar yang ditampilkan ke user (VA number, kode dummy, dll.). */
