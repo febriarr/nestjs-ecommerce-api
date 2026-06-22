@@ -71,7 +71,9 @@ export const outlets = pgTable(
     ...timestamps,
   },
   (t) => [
-    uniqueIndex('outlets_code_idx').on(t.code),
+    uniqueIndex('outlets_code_active_idx')
+      .on(t.code)
+      .where(sql`${t.deletedAt} IS NULL`),
     index('outlets_city_province_idx').on(t.city, t.province),
     index('outlets_serves_online_idx').on(t.servesOnline, t.isActive),
     // hanya boleh ada SATU outlet default online

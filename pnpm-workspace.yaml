@@ -1,0 +1,6 @@
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - bcrypt
+  - msgpackr-extract
+  - puppeteer
+  - sharp
