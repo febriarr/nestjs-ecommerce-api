@@ -1,8 +1,9 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -28,6 +29,7 @@ export class CreateUserDTO {
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'Password minimal 8 karakter' })
+  @Transform(({ value }: { value: string }) => value.trim())
   @MaxLength(255)
   password: string;
 
@@ -43,4 +45,9 @@ export class CreateUserDTO {
   @IsOptional()
   @IsIn(roleEnum.enumValues, { message: 'Role tidak valid' })
   role?: Role;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  outletId?: number;
 }

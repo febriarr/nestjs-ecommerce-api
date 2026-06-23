@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -71,4 +72,9 @@ export class UpdateUserDTO {
   @ValidateNested()
   @Type(() => NotificationPrefDTO)
   notificationPref?: NotificationPrefDTO;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  outletId?: number;
 }

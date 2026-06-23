@@ -1,4 +1,4 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import type {
   Role,
   Status,
@@ -12,6 +12,11 @@ export interface NotificationPrefResponse {
     orderUpdate: boolean;
     promo: boolean;
   };
+}
+
+export class UserOutletResponseDTO {
+  @Expose()
+  code: string;
 }
 
 /** Profil user tanpa field sensitif (password, oauthMetadata). */
@@ -45,6 +50,10 @@ export class UserResponseDto {
 
   @Expose()
   notificationPref: NotificationPrefResponse | null;
+
+  @Expose()
+  @Type(() => UserOutletResponseDTO)
+  outlet: UserOutletResponseDTO | null;
 
   @Expose()
   lastLoginAt: Date | null;

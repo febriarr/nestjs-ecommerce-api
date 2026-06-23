@@ -15,6 +15,8 @@ import { uuidv7 } from 'uuidv7';
 
 import { sql } from 'drizzle-orm';
 import { timestamps } from './utils';
+import { integer } from 'drizzle-orm/pg-core';
+import { outlets } from './outlets.entity';
 
 type OauthMetadata = {
   provider: string;
@@ -33,7 +35,12 @@ type NotificationPref = {
   };
 };
 
-export const roleEnum = pgEnum('role', ['super_admin', 'admin', 'customer']);
+export const roleEnum = pgEnum('role', [
+  'super_admin',
+  'admin',
+  'customer',
+  'cashier',
+]);
 export const statusEnum = pgEnum('status', ['active', 'suspended']);
 
 export type Role = (typeof roleEnum.enumValues)[number];
@@ -58,6 +65,9 @@ export const users = pgTable(
     status: statusEnum('status').notNull().default('active'),
     oauthMetadata: jsonb('oauth_metadata').$type<OauthMetadata>(),
     notificationPref: jsonb('notification_pref').$type<NotificationPref>(),
+    outletId: integer('outlet_id').references(() => outlets.id, {
+      onDelete: 'set null',
+    }),
     password: varchar('password', { length: 255 }),
     lastLoginAt: timestamp('last_login_at'),
     ...timestamps,
@@ -67,6 +77,8 @@ export const users = pgTable(
     index('users_status_idx').on(t.status),
     index('users_role_status_idx').on(t.role, t.status), // filter admin list
     index('users_last_login_idx').on(t.lastLoginAt), // query user aktif/tidak aktif
+    index('users_outlet_id_idx').on(t.outletId),
+    index('users_outlet_role_idx').on(t.outletId, t.role), // untuk role per outlet
   ]
 );
 

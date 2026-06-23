@@ -9,6 +9,13 @@ export const UserNotFoundException = defineAppError({
   status: HttpStatus.NOT_FOUND,
 });
 
+export const UserOutletNotFoundException = defineAppError({
+  code: ERROR_CODES.USER_OUTLET_NOT_FOUND,
+  category: 'USER',
+  message: 'Outlet tidak ditemukan',
+  status: HttpStatus.NOT_FOUND,
+});
+
 export const UserSuspendedException = defineAppError({
   code: ERROR_CODES.USER_SUSPENDED,
   category: 'USER',
@@ -35,4 +42,18 @@ export const UserContactNotFoundException = defineAppError({
   category: 'USER',
   message: 'Alamat tidak ditemukan atau bukan milik user ini.',
   status: HttpStatus.NOT_FOUND,
+});
+
+export const UserInvalidRoleException = defineAppError({
+  code: ERROR_CODES.USER_INVALID_ROLE,
+  category: 'USER',
+  message: 'Role user tidak valid.',
+  status: HttpStatus.UNPROCESSABLE_ENTITY,
+});
+
+export const UserInvalidOutletAssignmentException = defineAppError({
+  code: ERROR_CODES.USER_INVALID_OUTLET_ASSIGNMENT,
+  category: 'USER',
+  message: 'Penugasan outlet tidak valid untuk role user ini.',
+  status: HttpStatus.UNPROCESSABLE_ENTITY,
 });

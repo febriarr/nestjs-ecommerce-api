@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { UserContactsService } from './user-contacts.service';
 import { UsersRepository } from './users.repository';
 import { UserContactsRepository } from './user-contacts.repository';
+import { OutletsModule } from '../outlets/outlets.module';
 
 @Module({
   controllers: [UsersController, UserContactsController],
@@ -15,5 +16,6 @@ import { UserContactsRepository } from './user-contacts.repository';
     UserContactsRepository,
   ],
   exports: [UsersService, UsersRepository],
+  imports: [OutletsModule],
 })
 export class UsersModule {}

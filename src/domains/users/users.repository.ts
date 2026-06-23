@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, ilike, isNull, lt, or } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  ilike,
+  isNull,
+  lt,
+  or,
+} from 'drizzle-orm';
 
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
@@ -8,6 +17,7 @@ import {
   InsertUser,
   Role,
   Status,
+  outlets,
 } from '../../infrastructure/database/schema';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 
@@ -17,26 +27,44 @@ export interface UserListFilter {
   search?: string;
 }
 
+export type SelectUserWithOutlet = SelectUser & {
+  outlet: {
+    code: string;
+  } | null;
+};
+
 @Injectable()
 export class UsersRepository extends BaseRepository {
   constructor(db: DatabaseService) {
     super(db);
   }
 
-  async findById(id: string): Promise<SelectUser | null> {
+  async findById(id: string): Promise<SelectUserWithOutlet | null> {
     const [user] = await this.db
-      .select()
+      .select({
+        ...getTableColumns(users),
+        outlet: {
+          code: outlets.code,
+        },
+      })
       .from(users)
+      .leftJoin(outlets, eq(users.outletId, outlets.id))
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
       .limit(1);
 
     return user ?? null;
   }
 
-  async findByEmail(email: string): Promise<SelectUser | null> {
+  async findByEmail(email: string): Promise<SelectUserWithOutlet | null> {
     const [user] = await this.db
-      .select()
+      .select({
+        ...getTableColumns(users),
+        outlet: {
+          code: outlets.code,
+        },
+      })
       .from(users)
+      .leftJoin(outlets, eq(users.outletId, outlets.id))
       .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
 
@@ -48,7 +76,7 @@ export class UsersRepository extends BaseRepository {
     filter: UserListFilter,
     cursorId: string | null,
     limit: number
-  ): Promise<SelectUser[]> {
+  ): Promise<SelectUserWithOutlet[]> {
     const conditions = [isNull(users.deletedAt)];
     if (filter.role) conditions.push(eq(users.role, filter.role));
     if (filter.status) conditions.push(eq(users.status, filter.status));
@@ -63,8 +91,14 @@ export class UsersRepository extends BaseRepository {
     if (cursorId !== null) conditions.push(lt(users.id, cursorId));
 
     return this.db
-      .select()
+      .select({
+        ...getTableColumns(users),
+        outlet: {
+          code: outlets.code,
+        },
+      })
       .from(users)
+      .leftJoin(outlets, eq(users.outletId, outlets.id))
       .where(and(...conditions))
       .orderBy(desc(users.id))
       .limit(limit + 1);
