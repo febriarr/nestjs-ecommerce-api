@@ -52,6 +52,9 @@ export class UserResponseDto {
   notificationPref: NotificationPrefResponse | null;
 
   @Expose()
+  outletId: number | null;
+
+  @Expose()
   @Type(() => UserOutletResponseDTO)
   outlet: UserOutletResponseDTO | null;
 

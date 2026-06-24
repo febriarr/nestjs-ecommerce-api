@@ -194,6 +194,7 @@ export class UsersService {
       emailIsVerified: user.emailIsVerified,
       phoneIsVerified: user.phoneIsVerified,
       notificationPref: user.notificationPref,
+      outletId: user.outletId,
       outlet: user.outlet,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
