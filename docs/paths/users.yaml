@@ -1,31 +1,31 @@
 users:
   get:
     tags:
-    - Users
+      - Users
     summary: List user (admin)
     description: 'Role: admin/super_admin. Filter role/status/search (nama/email).'
     parameters:
-    - $ref: ../components/parameters.yaml#/Cursor
-    - $ref: ../components/parameters.yaml#/Limit
-    - name: role
-      in: query
-      schema:
-        type: string
-        enum:
-        - super_admin
-        - admin
-        - customer
-    - name: status
-      in: query
-      schema:
-        type: string
-        enum:
-        - active
-        - suspended
-    - name: search
-      in: query
-      schema:
-        type: string
+      - $ref: ../components/parameters.yaml#/Cursor
+      - $ref: ../components/parameters.yaml#/Limit
+      - name: role
+        in: query
+        schema:
+          type: string
+          enum:
+            - super_admin
+            - admin
+            - customer
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+            - active
+            - suspended
+      - name: search
+        in: query
+        schema:
+          type: string
     responses:
       '200':
         $ref: ../components/responses.yaml#/UserList
@@ -33,7 +33,7 @@ users:
         $ref: ../components/responses.yaml#/Error
   post:
     tags:
-    - Users
+      - Users
     summary: Buat user internal (admin, boleh set role)
     description: 'Role: admin/super_admin. Registrasi publik memakai /auth/register.'
     requestBody:
@@ -43,9 +43,9 @@ users:
           schema:
             type: object
             required:
-            - email
-            - name
-            - password
+              - email
+              - name
+              - password
             properties:
               email:
                 type: string
@@ -63,9 +63,13 @@ users:
               role:
                 type: string
                 enum:
-                - super_admin
-                - admin
-                - customer
+                  - super_admin
+                  - admin
+                  - customer
+                  - cashier
+              outletId:
+                type: number
+                description: OutletId hanya di isi ketika membuat user admin atau cashier
     responses:
       '201':
         $ref: ../components/responses.yaml#/UserSingle
@@ -73,10 +77,10 @@ users:
         $ref: ../components/responses.yaml#/Error
 users-id:
   parameters:
-  - $ref: ../components/parameters.yaml#/UserId
+    - $ref: ../components/parameters.yaml#/UserId
   get:
     tags:
-    - Users
+      - Users
     summary: Detail user (diri sendiri, atau siapa pun bila admin)
     responses:
       '200':
@@ -85,7 +89,7 @@ users-id:
         $ref: ../components/responses.yaml#/Error
   patch:
     tags:
-    - Users
+      - Users
     summary: Update profil (diri sendiri/admin; role & status hanya admin)
     requestBody:
       content:
@@ -103,14 +107,14 @@ users-id:
               role:
                 type: string
                 enum:
-                - super_admin
-                - admin
-                - customer
+                  - super_admin
+                  - admin
+                  - customer
               status:
                 type: string
                 enum:
-                - active
-                - suspended
+                  - active
+                  - suspended
               notificationPref:
                 $ref: ../components/schemas/auth.yaml#/NotificationPref
     responses:
@@ -120,7 +124,7 @@ users-id:
         $ref: ../components/responses.yaml#/Error
   delete:
     tags:
-    - Users
+      - Users
     summary: Soft delete user (admin)
     responses:
       '200':
@@ -130,9 +134,10 @@ users-id:
 users-id-password:
   patch:
     tags:
-    - Users
+      - Users
     summary: Ganti password
-    description: 'Diri sendiri wajib `currentPassword` (kecuali akun OAuth yang belum punya password).
+    description:
+      'Diri sendiri wajib `currentPassword` (kecuali akun OAuth yang belum punya password).
 
       Admin boleh me-reset password user lain tanpa `currentPassword`.
 
@@ -140,7 +145,7 @@ users-id-password:
 
       '
     parameters:
-    - $ref: ../components/parameters.yaml#/UserId
+      - $ref: ../components/parameters.yaml#/UserId
     requestBody:
       required: true
       content:
@@ -148,7 +153,7 @@ users-id-password:
           schema:
             type: object
             required:
-            - newPassword
+              - newPassword
             properties:
               currentPassword:
                 type: string
