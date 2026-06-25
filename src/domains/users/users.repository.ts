@@ -5,6 +5,7 @@ import {
   eq,
   getTableColumns,
   ilike,
+  inArray,
   isNull,
   lt,
   or,
@@ -39,6 +40,8 @@ export type SelectUserWithAddress = SelectUser & {
   city: string | null;
   province: string | null;
 };
+
+const STAFF_ROLES = ['cashier', 'admin', 'super_admin'] as const;
 
 @Injectable()
 export class UsersRepository extends BaseRepository {
@@ -79,13 +82,20 @@ export class UsersRepository extends BaseRepository {
   }
 
   /** Keyset pagination (uuidv7 time-ordered), urut terbaru dulu. */
+
   async list(
     filter: UserListFilter,
     cursorId: string | null,
     limit: number
   ): Promise<SelectUserWithOutlet[]> {
     const conditions = [isNull(users.deletedAt)];
-    if (filter.role) conditions.push(eq(users.role, filter.role));
+
+    if (filter.role) {
+      conditions.push(eq(users.role, filter.role));
+    } else {
+      conditions.push(inArray(users.role, [...STAFF_ROLES]));
+    }
+
     if (filter.status) conditions.push(eq(users.status, filter.status));
     if (filter.search) {
       const pattern = `%${filter.search}%`;
@@ -101,9 +111,7 @@ export class UsersRepository extends BaseRepository {
     return this.db
       .select({
         ...getTableColumns(users),
-        outlet: {
-          code: outlets.code,
-        },
+        outlet: { code: outlets.code },
       })
       .from(users)
       .leftJoin(outlets, eq(users.outletId, outlets.id))
