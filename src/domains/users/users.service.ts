@@ -238,7 +238,8 @@ export class UsersService {
   ): UserListResponseDTO {
     return new UserListResponseDTO({
       id: user.id,
-      name: user.email,
+      name: user.name,
+      email: user.email,
       role: user.role,
       status: user.status,
       outletId: user.outletId,
