@@ -1,9 +1,10 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 import { CursorQueryDTO } from '../../../common/dto/cursor-query.dto';
 import {
   roleEnum,
   statusEnum,
 } from '../../../infrastructure/database/schema/users.entity';
+import { Type } from 'class-transformer';
 
 export class UserQueryDTO extends CursorQueryDTO {
   @IsOptional()
@@ -18,4 +19,9 @@ export class UserQueryDTO extends CursorQueryDTO {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  outletId?: number;
 }

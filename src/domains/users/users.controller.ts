@@ -20,9 +20,11 @@ import { CreateUserDTO } from './dto/create-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { ChangePasswordDTO } from './dto/change-password.dto';
 import { UserQueryDTO } from './dto/user-query.dto';
-import { UserResponseDto } from './dto/response-user.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 import { AuthForbiddenException } from '../../common/exceptions/domains/auth.exceptions';
+import { ResponseCustomersListDTO } from './dto/response-customers-list.dto';
+import { UserListResponseDTO } from './dto/response-user-list.dto';
+import { ResponseMeDTO } from './dto/response-me.dto';
 
 @Controller('users')
 export class UsersController {
@@ -32,8 +34,15 @@ export class UsersController {
   @Roles('admin', 'super_admin')
   async list(
     @Query() query: UserQueryDTO
-  ): Promise<WithMetadata<UserResponseDto[]>> {
+  ): Promise<WithMetadata<UserListResponseDTO[]>> {
     return this.usersService.list(query);
+  }
+  @Get()
+  @Roles('admin', 'super_admin')
+  async customerList(
+    @Query() query: UserQueryDTO
+  ): Promise<WithMetadata<ResponseCustomersListDTO[]>> {
+    return this.usersService.customerList(query);
   }
 
   /** Profil sendiri, atau user mana pun bila admin. */
@@ -41,7 +50,7 @@ export class UsersController {
   async findById(
     @CurrentUser() requester: SelectUser,
     @Param('id', ParseUUIDPipe) id: string
-  ): Promise<UserResponseDto> {
+  ): Promise<ResponseMeDTO> {
     assertSelfOrAdmin(requester, id);
     return this.usersService.findById(id);
   }
@@ -50,7 +59,7 @@ export class UsersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Roles('admin', 'super_admin')
-  async create(@Body() dto: CreateUserDTO): Promise<UserResponseDto> {
+  async create(@Body() dto: CreateUserDTO): Promise<ResponseMeDTO> {
     return this.usersService.createUser(dto);
   }
 
@@ -60,7 +69,7 @@ export class UsersController {
     @CurrentUser() requester: SelectUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDTO
-  ): Promise<UserResponseDto> {
+  ): Promise<ResponseMeDTO> {
     assertSelfOrAdmin(requester, id);
     if (
       (dto.role !== undefined || dto.status !== undefined) &&

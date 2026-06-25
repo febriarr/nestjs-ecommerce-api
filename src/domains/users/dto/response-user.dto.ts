@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose } from 'class-transformer';
 import type {
   Role,
   Status,
@@ -43,29 +43,7 @@ export class UserResponseDto {
   status: Status;
 
   @Expose()
-  emailIsVerified: boolean | null;
-
-  @Expose()
-  phoneIsVerified: boolean | null;
-
-  @Expose()
-  notificationPref: NotificationPrefResponse | null;
-
-  @Expose()
-  outletId: number | null;
-
-  @Expose()
-  @Type(() => UserOutletResponseDTO)
-  outlet: UserOutletResponseDTO | null;
-
-  @Expose()
-  lastLoginAt: Date | null;
-
-  @Expose()
   createdAt: Date;
-
-  @Expose()
-  updatedAt: Date;
 
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);

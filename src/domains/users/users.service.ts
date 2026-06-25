@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { SelectUserWithOutlet, UsersRepository } from './users.repository';
+import {
+  SelectUserWithAddress,
+  SelectUserWithOutlet,
+  UsersRepository,
+} from './users.repository';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { ChangePasswordDTO } from './dto/change-password.dto';
 import { UserQueryDTO } from './dto/user-query.dto';
-import { UserResponseDto } from './dto/response-user.dto';
 import { WithMetadata } from '../../common/types/api-response.type';
 import {
   buildStringCursorPage,
@@ -20,6 +23,9 @@ import {
   UserOutletNotFoundException,
 } from '../../common/exceptions/domains/user.exceptions';
 import { OutletsRepository } from '../outlets/outlets.repository';
+import { ResponseMeDTO } from './dto/response-me.dto';
+import { UserListResponseDTO } from './dto/response-user-list.dto';
+import { ResponseCustomersListDTO } from './dto/response-customers-list.dto';
 
 /** Cost factor bcrypt — tuning knob, bukan konfigurasi per-environment. */
 const SALT_ROUNDS = 12;
@@ -31,7 +37,7 @@ export class UsersService {
     private readonly outletsRepository: OutletsRepository
   ) {}
 
-  async createUser(dto: CreateUserDTO): Promise<UserResponseDto> {
+  async createUser(dto: CreateUserDTO): Promise<ResponseMeDTO> {
     if (await this.usersRepository.findByEmail(dto.email)) {
       throw UserEmailConflictException({ details: { email: dto.email } });
     }
@@ -72,28 +78,55 @@ export class UsersService {
     });
 
     const user = await this.getUserOrThrow(created.id);
-    return this.toUserResponse(user);
+    return this.mapToUserDetailResponse(user);
   }
 
-  async findById(id: string): Promise<UserResponseDto> {
-    return this.toUserResponse(await this.getUserOrThrow(id));
+  async findById(id: string): Promise<ResponseMeDTO> {
+    return this.mapToUserDetailResponse(await this.getUserOrThrow(id));
   }
 
-  async list(query: UserQueryDTO): Promise<WithMetadata<UserResponseDto[]>> {
+  async list(
+    query: UserQueryDTO
+  ): Promise<WithMetadata<UserListResponseDTO[]>> {
     const limit = query.limit ?? DEFAULT_PAGE_LIMIT;
     const rows = await this.usersRepository.list(
-      { role: query.role, status: query.status, search: query.search },
+      {
+        role: query.role,
+        status: query.status,
+        search: query.search,
+        outletId: query.outletId,
+      },
       decodeStringCursor(query.cursor),
       limit
     );
     const { items, meta } = buildStringCursorPage(rows, limit, (row) => row.id);
     return {
-      data: items.map((user) => this.toUserResponse(user)),
+      data: items.map((user) => this.mapToUserListResponse(user)),
       metadata: meta,
     };
   }
 
-  async update(id: string, dto: UpdateUserDTO): Promise<UserResponseDto> {
+  async customerList(
+    query: UserQueryDTO
+  ): Promise<WithMetadata<ResponseCustomersListDTO[]>> {
+    const limit = query.limit ?? DEFAULT_PAGE_LIMIT;
+    const rows = await this.usersRepository.customerList(
+      {
+        role: query.role,
+        status: query.status,
+        search: query.search,
+      },
+      decodeStringCursor(query.cursor),
+      limit
+    );
+    const { items, meta } = buildStringCursorPage(rows, limit, (row) => row.id);
+    return {
+      data: items.map((user) => this.mapToCustomerListResponse(user)),
+      metadata: meta,
+    };
+  }
+
+  async update(id: string, dto: UpdateUserDTO): Promise<ResponseMeDTO> {
     const existingUser = await this.getUserOrThrow(id);
 
     const role = dto.role !== undefined ? dto.role : existingUser.role;
@@ -137,7 +170,7 @@ export class UsersService {
     });
 
     const user = await this.getUserOrThrow(updated.id);
-    return this.toUserResponse(user);
+    return this.mapToUserDetailResponse(user);
   }
 
   /**
@@ -182,8 +215,8 @@ export class UsersService {
   }
 
   /** Buang field sensitif (password, oauthMetadata) dari response. */
-  private toUserResponse(user: SelectUserWithOutlet): UserResponseDto {
-    return new UserResponseDto({
+  private mapToUserDetailResponse(user: SelectUserWithOutlet): ResponseMeDTO {
+    return new ResponseMeDTO({
       id: user.id,
       email: user.email,
       name: user.name,
@@ -191,14 +224,50 @@ export class UsersService {
       avatar: user.avatar,
       role: user.role,
       status: user.status,
+      outletId: user.outletId,
+      outlet: user.outlet,
       emailIsVerified: user.emailIsVerified,
       phoneIsVerified: user.phoneIsVerified,
       notificationPref: user.notificationPref,
+      createdAt: user.createdAt,
+    });
+  }
+
+  private mapToUserListResponse(
+    user: SelectUserWithOutlet
+  ): UserListResponseDTO {
+    return new UserListResponseDTO({
+      id: user.id,
+      name: user.email,
+      role: user.role,
+      status: user.status,
       outletId: user.outletId,
       outlet: user.outlet,
-      lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+    });
+  }
+
+  private mapToCustomerListResponse(
+    user: SelectUserWithAddress
+  ): ResponseCustomersListDTO {
+    return new ResponseCustomersListDTO({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      createdAt: user.createdAt,
+      verified: {
+        emailIsVerified: user.emailIsVerified,
+        phoneIsVerified: user.phoneIsVerified,
+      },
+      address: {
+        city: user.city,
+        province: user.province,
+        phone: user.phone,
+      },
     });
   }
 }

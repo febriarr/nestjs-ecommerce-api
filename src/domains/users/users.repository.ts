@@ -18,6 +18,7 @@ import {
   Role,
   Status,
   outlets,
+  userContacts,
 } from '../../infrastructure/database/schema';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 
@@ -25,12 +26,18 @@ export interface UserListFilter {
   role?: Role;
   status?: Status;
   search?: string;
+  outletId?: number;
 }
 
 export type SelectUserWithOutlet = SelectUser & {
   outlet: {
     code: string;
   } | null;
+};
+
+export type SelectUserWithAddress = SelectUser & {
+  city: string | null;
+  province: string | null;
 };
 
 @Injectable()
@@ -88,6 +95,7 @@ export class UsersRepository extends BaseRepository {
       );
       if (search) conditions.push(search);
     }
+    if (filter.outletId) conditions.push(eq(users.outletId, filter.outletId));
     if (cursorId !== null) conditions.push(lt(users.id, cursorId));
 
     return this.db
@@ -99,6 +107,37 @@ export class UsersRepository extends BaseRepository {
       })
       .from(users)
       .leftJoin(outlets, eq(users.outletId, outlets.id))
+      .where(and(...conditions))
+      .orderBy(desc(users.id))
+      .limit(limit + 1);
+  }
+
+  async customerList(
+    filter: Pick<UserListFilter, 'search' | 'role' | 'status'>,
+    cursorId: string | null,
+    limit: number
+  ): Promise<SelectUserWithAddress[]> {
+    const conditions = [isNull(users.deletedAt)];
+    if (filter.role) conditions.push(eq(users.role, filter.role));
+    if (filter.status) conditions.push(eq(users.status, filter.status));
+    if (filter.search) {
+      const pattern = `%${filter.search}%`;
+      const search = or(
+        ilike(users.name, pattern),
+        ilike(users.email, pattern)
+      );
+      if (search) conditions.push(search);
+    }
+    if (cursorId !== null) conditions.push(lt(users.id, cursorId));
+
+    return this.db
+      .select({
+        ...getTableColumns(users),
+        city: userContacts.city,
+        province: userContacts.province,
+      })
+      .from(users)
+      .leftJoin(userContacts, eq(users.id, userContacts.id))
       .where(and(...conditions))
       .orderBy(desc(users.id))
       .limit(limit + 1);

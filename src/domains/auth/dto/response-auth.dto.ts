@@ -1,5 +1,5 @@
 import { Expose } from 'class-transformer';
-import { UserResponseDto } from '../../users/dto/response-user.dto';
+import { ResponseMeDTO } from 'src/domains/users/dto/response-me.dto';
 
 /** Hasil login/register: session token opaque + profil user. */
 export class AuthResponseDto {
@@ -11,7 +11,7 @@ export class AuthResponseDto {
   expiresAt: Date;
 
   @Expose()
-  user: UserResponseDto;
+  user: ResponseMeDTO;
 
   constructor(partial: Partial<AuthResponseDto>) {
     Object.assign(this, partial);
