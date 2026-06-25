@@ -37,7 +37,7 @@ export class UsersController {
   ): Promise<WithMetadata<UserListResponseDTO[]>> {
     return this.usersService.list(query);
   }
-  @Get()
+  @Get('/customers')
   @Roles('admin', 'super_admin')
   async customerList(
     @Query() query: UserQueryDTO
