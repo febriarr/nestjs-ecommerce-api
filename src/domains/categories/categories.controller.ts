@@ -48,6 +48,12 @@ export class CategoriesController {
   }
 
   @Public()
+  @Get('parents')
+  async findParents(): Promise<CategoryResponseDto[]> {
+    return this.categoriesService.findParents();
+  }
+
+  @Public()
   @Get(':id')
   async findById(
     @Param('id', ParseUUIDPipe) id: string

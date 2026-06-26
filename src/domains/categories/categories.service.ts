@@ -108,6 +108,11 @@ export class CategoriesService {
     return this.toResponse(row);
   }
 
+  async findParents(): Promise<CategoryResponseDto[]> {
+    const rows = await this.repo.findParents();
+    return rows.map((r) => this.toResponse(r));
+  }
+
   async update(
     id: string,
     dto: UpdateCategoryDTO,
