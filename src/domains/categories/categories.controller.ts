@@ -19,6 +19,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { UpdateCategoryDTO } from './dto/update-category.dto';
 import {
+  CategoryOptionsDTO,
   CategoryResponseDto,
   CategoryTreeDto,
 } from './dto/response-category.dto';
@@ -42,15 +43,21 @@ export class CategoriesController {
   }
 
   @Public()
-  @Get('slug/:slug')
-  async findBySlug(@Param('slug') slug: string): Promise<CategoryResponseDto> {
-    return this.categoriesService.findBySlug(slug);
-  }
-
-  @Public()
   @Get('parents')
   async findParents(): Promise<CategoryResponseDto[]> {
     return this.categoriesService.findParents();
+  }
+
+  @Public()
+  @Get('options')
+  async findCategoryOptions(): Promise<CategoryOptionsDTO[]> {
+    return this.categoriesService.findCategoryOptions();
+  }
+
+  @Public()
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string): Promise<CategoryResponseDto> {
+    return this.categoriesService.findBySlug(slug);
   }
 
   @Public()

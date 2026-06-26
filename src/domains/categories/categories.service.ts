@@ -5,6 +5,7 @@ import { CreateCategoryDTO } from './dto/create-category.dto';
 import { UpdateCategoryDTO } from './dto/update-category.dto';
 import { ReorderCategoriesDTO } from './dto/reorder-category.dto';
 import {
+  CategoryOptionsDTO,
   CategoryResponseDto,
   CategoryTreeDto,
 } from './dto/response-category.dto';
@@ -111,6 +112,11 @@ export class CategoriesService {
   async findParents(): Promise<CategoryResponseDto[]> {
     const rows = await this.repo.findParents();
     return rows.map((r) => this.toResponse(r));
+  }
+
+  async findCategoryOptions(): Promise<CategoryOptionsDTO[]> {
+    const rows = await this.repo.findCategoryOptions();
+    return rows.map((r) => new CategoryOptionsDTO(r));
   }
 
   async update(

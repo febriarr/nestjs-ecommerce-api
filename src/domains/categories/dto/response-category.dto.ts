@@ -51,3 +51,15 @@ export class CategoryTreeDto extends CategoryResponseDto {
     this.children = partial.children ?? [];
   }
 }
+
+export class CategoryOptionsDTO {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+
+  constructor(partial: CategoryOptionsDTO) {
+    Object.assign(this, partial);
+  }
+}

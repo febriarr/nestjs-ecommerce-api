@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
@@ -7,6 +7,8 @@ import {
   InsertCategories,
   SelectCategories,
 } from '../../infrastructure/database/schema';
+
+type CategoryOptions = Pick<SelectCategories, 'id' | 'name'>;
 
 @Injectable()
 export class CategoriesRepository extends BaseRepository {
@@ -41,6 +43,17 @@ export class CategoriesRepository extends BaseRepository {
       where: and(isNull(categories.deletedAt), isNull(categories.parentId)),
       orderBy: asc(categories.sortOrder),
     });
+  }
+
+  async findCategoryOptions(): Promise<CategoryOptions[]> {
+    return this.db
+      .select({
+        id: categories.id,
+        name: categories.name,
+      })
+      .from(categories)
+      .where(and(isNull(categories.deletedAt), isNotNull(categories.parentId)))
+      .orderBy(asc(categories.sortOrder));
   }
 
   /**
