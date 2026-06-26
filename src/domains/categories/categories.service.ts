@@ -3,6 +3,7 @@ import { CategoriesRepository } from './categories.repository';
 import { ImageUploadService } from '../../infrastructure/image-processing/image-upload.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { UpdateCategoryDTO } from './dto/update-category.dto';
+import { ReorderCategoriesDTO } from './dto/reorder-category.dto';
 import {
   CategoryResponseDto,
   CategoryTreeDto,
@@ -14,6 +15,7 @@ import {
 import {
   CategoryNotFoundException,
   CategorySlugConflictException,
+  CategoryReorderLevelMismatchException,
 } from '../../common/exceptions/domains/category.exceptions';
 
 const CATEGORY_IMAGE_PREFIX = 'categories';
@@ -34,6 +36,13 @@ export class CategoriesService {
     await this.assertSlugAvailable(dto.slug);
     if (dto.parentId) await this.getCategoryOrThrow(dto.parentId);
 
+    // Auto-assign sortOrder jika tidak dikirim dari request
+    let resolvedSortOrder = dto.sortOrder;
+    if (resolvedSortOrder === undefined) {
+      const lastOrder = await this.repo.findLastSortOrder(dto.parentId ?? null);
+      resolvedSortOrder = lastOrder ? lastOrder.sortOrder + 1 : 1;
+    }
+
     let uploadedKey: string | null = null;
     try {
       if (file) {
@@ -50,9 +59,10 @@ export class CategoriesService {
         description: dto.description ?? null,
         parentId: dto.parentId ?? null,
         imageUrl: uploadedKey,
+        sortOrder: resolvedSortOrder,
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
       };
+
       const row = await this.repo.insert(payload);
       return this.toResponse(row);
     } catch (error) {
@@ -104,14 +114,29 @@ export class CategoriesService {
     file?: Express.Multer.File
   ): Promise<CategoryResponseDto> {
     const existing = await this.getCategoryOrThrow(id);
+
     if (dto.slug && dto.slug !== existing.slug)
       await this.assertSlugAvailable(dto.slug);
+
     if (dto.parentId) {
       if (dto.parentId === id)
         throw CategoryNotFoundException({
           details: { reason: 'parentId tidak boleh diri sendiri' },
         });
       await this.getCategoryOrThrow(dto.parentId);
+    }
+
+    // Resolve parentId final: pakai dari payload jika dikirim, fallback ke existing
+    const resolvedParentId =
+      dto.parentId !== undefined ? dto.parentId : existing.parentId;
+
+    // Auto-assign sortOrder hanya jika tidak dikirim dari request
+    let resolvedSortOrder: number;
+    if (dto.sortOrder !== undefined) {
+      resolvedSortOrder = dto.sortOrder;
+    } else {
+      const lastOrder = await this.repo.findLastSortOrder(resolvedParentId);
+      resolvedSortOrder = lastOrder ? lastOrder.sortOrder + 1 : 1;
     }
 
     let newKey: string | null = null;
@@ -133,17 +158,50 @@ export class CategoriesService {
           : {}),
         ...(dto.parentId !== undefined ? { parentId: dto.parentId } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+        sortOrder: resolvedSortOrder,
         ...(newKey ? { imageUrl: newKey } : {}),
+        updatedAt: new Date(),
       });
     } catch (error) {
       if (newKey) await this.safeDeleteImage(newKey);
       throw error;
     }
 
-    if (newKey && existing.imageUrl)
+    // Hapus gambar lama setelah update berhasil
+    if (newKey && existing.imageUrl && existing.imageUrl !== newKey)
       await this.safeDeleteImage(existing.imageUrl);
+
     return this.toResponse(row);
+  }
+
+  /**
+   * Swap sortOrder antara dua kategori dalam level yang sama.
+   * Validasi: keduanya harus ada dan harus berada dalam level yang sama
+   * (keduanya parent, atau keduanya child dari parentId yang sama).
+   */
+  async reorder(dto: ReorderCategoriesDTO): Promise<void> {
+    const [a, b] = dto.items;
+
+    const existing = await this.repo.findManyByIds([a.id, b.id]);
+
+    if (existing.length !== 2)
+      throw CategoryNotFoundException({
+        details: { reason: 'Satu atau kedua kategori tidak ditemukan' },
+      });
+
+    const [catA, catB] = existing as [SelectCategories, SelectCategories];
+
+    if (catA.parentId !== catB.parentId)
+      throw CategoryReorderLevelMismatchException({
+        details: {
+          reason: 'Kategori harus berada dalam level yang sama untuk ditukar',
+        },
+      });
+
+    await this.repo.swapSortOrder(
+      { id: a.id, sortOrder: a.sortOrder },
+      { id: b.id, sortOrder: b.sortOrder }
+    );
   }
 
   async softDelete(id: string): Promise<void> {

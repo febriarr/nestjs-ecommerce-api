@@ -22,6 +22,7 @@ import {
   CategoryResponseDto,
   CategoryTreeDto,
 } from './dto/response-category.dto';
+import { ReorderCategoriesDTO } from './dto/reorder-category.dto';
 
 @Roles('admin', 'super_admin')
 @Controller('categories')
@@ -62,6 +63,12 @@ export class CategoriesController {
     @UploadedFile() image?: Express.Multer.File
   ): Promise<CategoryResponseDto> {
     return this.categoriesService.create(dto, image);
+  }
+
+  @Patch('reorder')
+  @HttpCode(HttpStatus.OK)
+  async reorder(@Body() dto: ReorderCategoriesDTO): Promise<void> {
+    return this.categoriesService.reorder(dto);
   }
 
   @Patch(':id')

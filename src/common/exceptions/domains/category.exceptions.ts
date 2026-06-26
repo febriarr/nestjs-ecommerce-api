@@ -15,3 +15,10 @@ export const CategorySlugConflictException = defineAppError({
   message: 'Slug kategori sudah digunakan.',
   status: HttpStatus.CONFLICT,
 });
+
+export const CategoryReorderLevelMismatchException = defineAppError({
+  code: ERROR_CODES.CATEGORY_REORDER_LEVEL_MISMATCH,
+  category: 'CATEGORY',
+  message: 'Kategori harus berada dalam level yang sama untuk ditukar.',
+  status: HttpStatus.UNPROCESSABLE_ENTITY,
+});
