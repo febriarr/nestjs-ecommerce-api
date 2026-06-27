@@ -15,7 +15,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AttributesService } from './attributes.service';
 import { CreateAttributeDTO } from './dto/create-attribute.dto';
 import { UpdateAttributeDTO } from './dto/update-attribute.dto';
-import { AttributeResponseDto } from './dto/response-attribute.dto';
+import {
+  AttributeResponseDto,
+  AttributeWithValuesResponseDto,
+} from './dto/response-attribute.dto';
 import { CreateAttributeValueDTO } from './dto/create-attribute-value.dto';
 import { UpdateAttributeValueDTO } from './dto/update-attribute-value.dto';
 import { AttributeValueResponseDto } from './dto/response-attribute-value.dto';
@@ -29,6 +32,12 @@ export class AttributesController {
   @Get()
   async findAll(): Promise<AttributeResponseDto[]> {
     return this.attributesService.findAll();
+  }
+
+  @Public()
+  @Get('values')
+  async findAttributesWithValues(): Promise<AttributeWithValuesResponseDto[]> {
+    return this.attributesService.findAttributesWithValues();
   }
 
   @Public()

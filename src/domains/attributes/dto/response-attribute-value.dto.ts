@@ -17,9 +17,6 @@ export class AttributeValueResponseDto {
   colorHex: string | null;
 
   @Expose()
-  sortOrder: number;
-
-  @Expose()
   isActive: boolean;
 
   @Expose()

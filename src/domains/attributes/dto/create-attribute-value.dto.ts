@@ -1,13 +1,11 @@
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class CreateAttributeValueDTO {
@@ -28,11 +26,6 @@ export class CreateAttributeValueDTO {
     message: 'colorHex harus format #RRGGBB',
   })
   colorHex?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  sortOrder?: number;
 
   @IsOptional()
   @IsBoolean()

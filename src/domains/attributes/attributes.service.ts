@@ -2,13 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { AttributesRepository } from './attributes.repository';
 import { CreateAttributeDTO } from './dto/create-attribute.dto';
 import { UpdateAttributeDTO } from './dto/update-attribute.dto';
-import { AttributeResponseDto } from './dto/response-attribute.dto';
+import {
+  AttributeResponseDto,
+  AttributeWithValuesResponseDto,
+} from './dto/response-attribute.dto';
 import { CreateAttributeValueDTO } from './dto/create-attribute-value.dto';
 import { UpdateAttributeValueDTO } from './dto/update-attribute-value.dto';
 import { AttributeValueResponseDto } from './dto/response-attribute-value.dto';
 import {
   SelectAttribute,
-  SelectAttributeValuse,
+  SelectAttributeValues,
 } from '../../infrastructure/database/schema';
 import {
   AttributeNameConflictException,
@@ -42,6 +45,18 @@ export class AttributesService {
   async findById(id: number): Promise<AttributeResponseDto> {
     const row = await this.getAttributeOrThrow(id);
     return new AttributeResponseDto(row);
+  }
+
+  async findAttributesWithValues(): Promise<AttributeWithValuesResponseDto[]> {
+    const rows = await this.repo.findAttributesWithValues();
+
+    return rows.map(
+      (row) =>
+        new AttributeWithValuesResponseDto({
+          ...row,
+          values: row.values,
+        })
+    );
   }
 
   async update(
@@ -85,7 +100,6 @@ export class AttributesService {
       value: dto.value,
       displayValue: dto.displayValue ?? null,
       colorHex: dto.colorHex ?? null,
-      ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
     });
     return new AttributeValueResponseDto(row);
@@ -115,7 +129,6 @@ export class AttributesService {
         ? { displayValue: dto.displayValue }
         : {}),
       ...(dto.colorHex !== undefined ? { colorHex: dto.colorHex } : {}),
-      ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
     });
     return new AttributeValueResponseDto(row);
@@ -137,7 +150,7 @@ export class AttributesService {
   private async getValueOrThrow(
     attributeId: number,
     valueId: number
-  ): Promise<SelectAttributeValuse> {
+  ): Promise<SelectAttributeValues> {
     const row = await this.repo.findValueById(valueId);
     if (!row || row.attributeId !== attributeId)
       throw AttributeValueNotFoundException({

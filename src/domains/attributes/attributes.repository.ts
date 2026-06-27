@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import { BaseRepository } from '../../common/abstracts/base.repository';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import {
@@ -8,8 +8,12 @@ import {
   InserAttribute,
   InsertAttributeValues,
   SelectAttribute,
-  SelectAttributeValuse,
+  SelectAttributeValues,
 } from '../../infrastructure/database/schema';
+
+type AttributesWithValues = SelectAttribute & {
+  values: SelectAttributeValues[];
+};
 
 @Injectable()
 export class AttributesRepository extends BaseRepository {
@@ -45,6 +49,18 @@ export class AttributesRepository extends BaseRepository {
       .orderBy(attributes.name);
   }
 
+  async findAttributesWithValues(): Promise<AttributesWithValues[]> {
+    return this.db.query.attributes.findMany({
+      where: isNull(attributes.deletedAt),
+      with: {
+        values: {
+          orderBy: desc(attributeValues.createdAt),
+        },
+      },
+      orderBy: asc(attributes.createdAt),
+    });
+  }
+
   async insert(payload: InserAttribute): Promise<SelectAttribute> {
     const [row] = await this.db.insert(attributes).values(payload).returning();
     return row;
@@ -71,7 +87,7 @@ export class AttributesRepository extends BaseRepository {
 
   // ---------- attribute values ----------
 
-  async findValueById(id: number): Promise<SelectAttributeValuse | null> {
+  async findValueById(id: number): Promise<SelectAttributeValues | null> {
     const rows = await this.db
       .select()
       .from(attributeValues)
@@ -83,7 +99,7 @@ export class AttributesRepository extends BaseRepository {
   async findValueByValue(
     attributeId: number,
     value: string
-  ): Promise<SelectAttributeValuse | null> {
+  ): Promise<SelectAttributeValues | null> {
     const rows = await this.db
       .select()
       .from(attributeValues)
@@ -98,7 +114,7 @@ export class AttributesRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async listValues(attributeId: number): Promise<SelectAttributeValuse[]> {
+  async listValues(attributeId: number): Promise<SelectAttributeValues[]> {
     return this.db
       .select()
       .from(attributeValues)
@@ -108,12 +124,12 @@ export class AttributesRepository extends BaseRepository {
           eq(attributeValues.attributeId, attributeId)
         )
       )
-      .orderBy(attributeValues.sortOrder, attributeValues.value);
+      .orderBy(attributeValues.createdAt, attributeValues.value);
   }
 
   async insertValue(
     payload: InsertAttributeValues
-  ): Promise<SelectAttributeValuse> {
+  ): Promise<SelectAttributeValues> {
     const [row] = await this.db
       .insert(attributeValues)
       .values(payload)
@@ -124,7 +140,7 @@ export class AttributesRepository extends BaseRepository {
   async updateValue(
     id: number,
     payload: Partial<InsertAttributeValues>
-  ): Promise<SelectAttributeValuse> {
+  ): Promise<SelectAttributeValues> {
     const [row] = await this.db
       .update(attributeValues)
       .set(payload)

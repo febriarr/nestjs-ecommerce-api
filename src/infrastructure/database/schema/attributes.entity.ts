@@ -3,7 +3,6 @@ import {
   varchar,
   bigserial,
   bigint,
-  integer,
   boolean,
   pgTable,
   uniqueIndex,
@@ -41,7 +40,7 @@ export const attributes = pgTable(
  */
 
 export const attributeValues = pgTable(
-  'attributes_valuse',
+  'attributes_values',
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     attributeId: bigint('attribute_id', { mode: 'number' })
@@ -50,13 +49,13 @@ export const attributeValues = pgTable(
     value: varchar('value', { length: 100 }).notNull(),
     displayValue: varchar('display_value', { length: 100 }),
     colorHex: varchar('color_hex', { length: 7 }), // for color attribute
-    sortOrder: integer('sort_order').default(0).notNull(),
     isActive: boolean('is_active').default(true).notNull(),
     ...timestamps,
   },
   (t) => [
     index('attribute_values_attribute_id_idx').on(t.attributeId),
     uniqueIndex('attribute_values_unique_idx').on(t.attributeId, t.value),
+    index('attribute_values_create_at_idx').on(t.createdAt),
   ]
 );
 
@@ -66,4 +65,4 @@ export type SelectAttribute = typeof attributes.$inferSelect;
 
 // attribute values
 export type InsertAttributeValues = typeof attributeValues.$inferInsert;
-export type SelectAttributeValuse = typeof attributeValues.$inferSelect;
+export type SelectAttributeValues = typeof attributeValues.$inferSelect;
