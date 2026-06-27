@@ -125,7 +125,7 @@ export class UsersRepository extends BaseRepository {
     cursorId: string | null,
     limit: number
   ): Promise<SelectUserWithAddress[]> {
-    const conditions = [isNull(users.deletedAt)];
+    const conditions = [isNull(users.deletedAt), eq(users.role, 'customer')];
     if (filter.role) conditions.push(eq(users.role, filter.role));
     if (filter.status) conditions.push(eq(users.status, filter.status));
     if (filter.search) {
