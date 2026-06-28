@@ -26,7 +26,7 @@ import {
   productVariants,
   products,
   ProductStatus,
-  SelectAttributeValuse,
+  SelectAttributeValues,
   SelectProduct,
   SelectProductAttribute,
   SelectProductMedia,
@@ -167,7 +167,7 @@ export class ProductsRepository extends BaseRepository {
   }
 
   /** Ambil attribute_values berdasarkan daftar id (untuk validasi + derive attributeId). */
-  async attributeValuesByIds(ids: number[]): Promise<SelectAttributeValuse[]> {
+  async attributeValuesByIds(ids: number[]): Promise<SelectAttributeValues[]> {
     if (ids.length === 0) return [];
     return this.db
       .select()
