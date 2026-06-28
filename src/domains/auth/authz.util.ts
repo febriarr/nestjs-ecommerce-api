@@ -22,3 +22,7 @@ export function assertSelfOrAdmin(
     });
   }
 }
+
+export function onlySuperAdmin(user: SelectUser): boolean {
+  return user.role === 'super_admin';
+}

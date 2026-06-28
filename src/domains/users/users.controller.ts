@@ -14,7 +14,7 @@ import {
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { assertSelfOrAdmin, isAdmin } from '../auth/authz.util';
+import { assertSelfOrAdmin, isAdmin, onlySuperAdmin } from '../auth/authz.util';
 import type { SelectUser } from '../../infrastructure/database/schema';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
@@ -77,6 +77,14 @@ export class UsersController {
     ) {
       throw AuthForbiddenException({
         details: { reason: 'role/status hanya boleh diubah admin' },
+      });
+    }
+
+    if (dto.role === 'super_admin' && !onlySuperAdmin(requester)) {
+      throw AuthForbiddenException({
+        details: {
+          reason: 'Tidak boleh dilakukan oleh admin',
+        },
       });
     }
     return this.usersService.update(id, dto);
